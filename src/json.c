@@ -2,39 +2,12 @@
 #include <string.h> //strlen
 #include <stdio.h>  //printf
 
-// Types and defines
+#include "json.h"
+
 #define STRING_EXTRA_LENGTH 6 // "\"\":\"\","
+#define NUMBER_EXTRA_LENGTH 4 // "\"\":,"
 
-#define FALSE 0
-#define TRUE  1
-
-typedef unsigned char bool_t;
-
-typedef enum json_type {
-  string,
-  number,
-  object,
-  array,
-  boolean,
-  nil
-} json_type_t;
-
-typedef struct json_field {
-  json_type_t type;
-  char *key;
-  void *value;
-  struct json_field *next;
-} json_field_t;
-
-typedef struct json_object {
-  json_field_t *head;
-  int string_length;
-} json_object_t;
-
-typedef char *json_string_t;
-typedef int *json_number_t;
-
-// Functions
+static json_field_t *new_field(char *key);
 
 json_object_t *json_new() {
   json_object_t *obj;
@@ -48,50 +21,97 @@ json_object_t *json_new() {
   return obj;
 }
 
-bool_t json_add_string(json_object_t *obj, char *key, char *value) {
-  json_field_t *new, *ptr;
-  int key_len, value_len;
-
-  key_len = strlen(key);
-  value_len = strlen(value);
+static json_field_t *new_field(char *key) {
+  json_field_t *new;
 
   // Allocate new json field and strings
   new = malloc(sizeof(json_field_t));
   if (new == NULL)
-    return FALSE;
-  
-  new->key = malloc(key_len * sizeof(char));
+    return NULL;
+
+  new->key = malloc(strlen(key) * sizeof(char));
   if (new->key == NULL)
-    return FALSE;
-  
-  new->value = malloc(value_len * sizeof(char));
-  if (new->value == NULL)
-    return FALSE;
-  
-  // Set values
-  new->type = string;
-  memcpy(new->key, key, key_len);
-  memcpy(new->value, value, value_len);
+    return NULL;
+
+  strcpy(new->key, key);
   new->next = NULL;
 
+  return new;
+}
+
+json_field_t *json_new_string(char *key, char *value) {
+  json_field_t *new;
+
+  new = new_field(key);
+  if (new == NULL)
+    return NULL;
+
+  new->value = malloc(strlen(value) * sizeof(char));
+  if (new->value == NULL)
+    return NULL; 
+
+  // Set values
+  new->type = string;
+  strcpy(new->value, value);
+  
+  return new;
+}
+/*
+json_field_t json_new_long(json_object_t *obj, char *key, long long value) {
+  json_field_t *new;
+  int key_len, value_len;
+  long long n;
+
+  n = value;
+  value_len = 0;
+  if (n < 0)
+    value_len++;
+  do {
+    value_len++;
+  } while (n /= 10);
+
+  printf("%lld is %d digits\n", value, value_len);
+
+  key_len = strlen(key);
+
+  new = new_field(obj, key, key_len);
+  if (new == NULL)
+    return NULL;
+
+  new->value = (json_number_t*) malloc(sizeof(json_number_t));
+  if (new->value == NULL)
+    return NULL;
+  
+  // Set values
+  new->type = number;
+  *((json_number_t*) new->value) = value;
+  
+  // Update total length of stringified json
+  obj->string_length += key_len + value_len + NUMBER_EXTRA_LENGTH;
+  
+  return new;
+}
+*/
+void json_add(json_object_t *obj, json_field_t *field) {
+  json_field_t *ptr;
+  
   // If object is empty, create first field, otherwise append to end
   if (obj->head == NULL) {
-    obj->head = new;
+    obj->head = field;
   }
   else {
     for (ptr = obj->head; ptr && ptr->next; ptr = ptr->next)
       ;
-    ptr->next = new;
+    ptr->next = field;
   }
 
   // Update total length of stringified json
-  obj->string_length += strlen(key) + strlen(value) + STRING_EXTRA_LENGTH;
-  
-  return TRUE;
+  //printf("key len: %d, value len: %d\n", (int)field->key_strlen, (int)field->value_strlen);
+  obj->string_length += strlen(field->key) + strlen(field->value) + STRING_EXTRA_LENGTH;
 }
 
 char* json_stringify (json_object_t *obj) {
-  char *ret;
+  char *format_string, *ret;
   json_field_t *ptr;
   FILE *stream;
 
@@ -105,15 +125,34 @@ char* json_stringify (json_object_t *obj) {
     exit(EXIT_FAILURE);
   }
 
-  // Do the stringifying thing
+  // Do the stringifying thing ring-a-ding-ding
   fprintf(stream, "{");
   for (ptr = obj->head; ptr; ptr = ptr->next) {
-    fprintf(stream, "\"%s\":\"%s\"", ptr->key, ptr->value);
+
+    switch (ptr->type) {
+    case string:
+      format_string = "\"%s\":\"%s\"";
+      fprintf(stream, format_string, ptr->key, ptr->value);
+      break;
+    case number:
+      format_string = "\"%s\":\"%lld\"";
+      fprintf(stream, format_string, ptr->key, (json_number_t) ptr->value);
+      break;
+    case object: 
+      break;
+    case array:
+      break;
+    case boolean:
+      break;
+    case nil:
+      break;
+    }
+    
     if (ptr->next)
       fprintf(stream, ",");
   }
-  fprintf(stream, "}\0");
-
+  fprintf(stream, "}");
+  
   // Clean up and return
   fclose(stream);
   
@@ -136,45 +175,3 @@ void json_free(json_object_t *obj) {
   free(obj);
 }
 
-int main () {
-  json_object_t *obj;
-  char *json_string, buf1[64], buf2[64];
-  int i;
-
-  // Create json object
-  obj = json_new();
-  if (obj == NULL) {
-    perror("error on creating json object");
-    exit(EXIT_FAILURE);
-  }
-
-  // Stringigy empty json object
-  json_string = json_stringify(obj);
-  printf("%s\n", json_string);
-  free(json_string);
-  json_free(obj);
-
-  // Create json object
-  obj = json_new();
-  if (obj == NULL) {
-    perror("error on creating json object");
-    exit(EXIT_FAILURE);
-  }
-  // Populate json object with some string values
-  for (i=1; i<5; i++) {
-    sprintf(buf1, "key %d", i);
-    sprintf(buf2, "value %d", i);
-    if (!(json_add_string(obj, buf1, buf2))) {
-      perror("error on adding string");
-      exit(EXIT_FAILURE);
-    };
-  }
-
-  // Stringify populated json object
-  json_string = json_stringify(obj);
-  printf("%s\n", json_string);
-  free(json_string);
-  json_free(obj);
-  
-  return 0;
-}
