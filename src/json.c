@@ -56,29 +56,15 @@ json_field_t *json_new_string(char *key, char *value) {
   
   return new;
 }
-/*
-json_field_t json_new_long(json_object_t *obj, char *key, long long value) {
+
+json_field_t *json_new_long(char *key, json_number_t value) {
   json_field_t *new;
-  int key_len, value_len;
-  long long n;
 
-  n = value;
-  value_len = 0;
-  if (n < 0)
-    value_len++;
-  do {
-    value_len++;
-  } while (n /= 10);
-
-  printf("%lld is %d digits\n", value, value_len);
-
-  key_len = strlen(key);
-
-  new = new_field(obj, key, key_len);
+  new = new_field(key);
   if (new == NULL)
     return NULL;
 
-  new->value = (json_number_t*) malloc(sizeof(json_number_t));
+  new->value = malloc(sizeof(json_number_t));
   if (new->value == NULL)
     return NULL;
   
@@ -86,32 +72,54 @@ json_field_t json_new_long(json_object_t *obj, char *key, long long value) {
   new->type = number;
   *((json_number_t*) new->value) = value;
   
-  // Update total length of stringified json
-  obj->string_length += key_len + value_len + NUMBER_EXTRA_LENGTH;
-  
   return new;
 }
-*/
+
 void json_add(json_object_t *obj, json_field_t *field) {
-  json_field_t *ptr;
+  json_field_t *field_ptr;
   
   // If object is empty, create first field, otherwise append to end
   if (obj->head == NULL) {
     obj->head = field;
   }
   else {
-    for (ptr = obj->head; ptr && ptr->next; ptr = ptr->next)
+    for (field_ptr = obj->head; field_ptr && field_ptr->next; field_ptr = field_ptr->next)
       ;
-    ptr->next = field;
+    field_ptr->next = field;
   }
 
   // Update total length of stringified json
   //printf("key len: %d, value len: %d\n", (int)field->key_strlen, (int)field->value_strlen);
-  obj->string_length += strlen(field->key) + strlen(field->value) + STRING_EXTRA_LENGTH;
+  obj->string_length += strlen(field->key);
+  long long n;
+  long long *ll_ptr;
+  switch (field->type) {
+  case string:
+    obj->string_length += strlen(field->value) + STRING_EXTRA_LENGTH;
+    break;
+  case number:
+    ll_ptr = (long long *) field->value;
+    n = *ll_ptr;
+    if (n < 0)
+      obj->string_length++;
+    do {
+      obj->string_length++;
+    } while (n /= 10);
+    obj->string_length += NUMBER_EXTRA_LENGTH;
+    break;
+  case object: 
+    break;
+  case array:
+    break;
+  case boolean:
+    break;
+  case nil:
+    break;
+  }
 }
 
 char* json_stringify (json_object_t *obj) {
-  char *format_string, *ret;
+  char *ret;
   json_field_t *ptr;
   FILE *stream;
 
@@ -131,12 +139,10 @@ char* json_stringify (json_object_t *obj) {
 
     switch (ptr->type) {
     case string:
-      format_string = "\"%s\":\"%s\"";
-      fprintf(stream, format_string, ptr->key, ptr->value);
+      fprintf(stream, "\"%s\":\"%s\"", ptr->key, (char *) ptr->value);
       break;
     case number:
-      format_string = "\"%s\":\"%lld\"";
-      fprintf(stream, format_string, ptr->key, (json_number_t) ptr->value);
+      fprintf(stream, "\"%s\":%lld", ptr->key, *((json_number_t *) ptr->value));
       break;
     case object: 
       break;

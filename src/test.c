@@ -43,7 +43,7 @@ int main () {
   printf("%s\n", json_string);
   free(json_string);
   json_free(obj);
-  /*  
+    
   // Create json object
   obj = json_new();
   if (obj == NULL) {
@@ -54,10 +54,8 @@ int main () {
   // Populate json object with some number values
   for (i=1; i<5; i++) {
     sprintf(buf1, "key %d", i);
-    if (!(json_add_long(obj, buf1, (long)i*i*i+(13*i)-1))) {
-      perror("error on adding string");
-      exit(EXIT_FAILURE);
-    };
+    field = json_new_long(buf1, (long)i*i*i+(13*i)-1);
+    json_add(obj, field);
   }
 
   // Stringify populated json object
@@ -65,6 +63,6 @@ int main () {
   printf("%s\n", json_string);
   free(json_string);
   json_free(obj);
-  */
+  
   return 0;
 }

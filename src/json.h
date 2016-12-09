@@ -27,6 +27,7 @@ typedef long long json_number_t;
 
 json_object_t *json_new();
 json_field_t *json_new_string(char *key, char *value);
+json_field_t *json_new_long(char *key, json_number_t value);
 void json_add(json_object_t *obj, json_field_t *field);
 char* json_stringify (json_object_t *obj);
 void json_free(json_object_t *obj);
