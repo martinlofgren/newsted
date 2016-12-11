@@ -4,12 +4,20 @@
 
 #include "json.h"
 
-#define STRING_EXTRA_LENGTH 6 // "\"\":\"\","
-#define NUMBER_EXTRA_LENGTH 4 // "\"\":,"
+#define KEY_EXTRA_LENGTH    3 // "...":
+#define STRING_EXTRA_LENGTH 2 // "..."
+#define NUMBER_EXTRA_LENGTH 0 // 
+#define OBJECT_EXTRA_LENGTH 2 // {...}
 
 static json_field_t *new_field(char *key);
+//static void stringify_helper(FILE *stream, json_field_t *ptr);
+static void stringify_key(FILE* stream, char *key);
+static void stringify_string(json_field_t *field, FILE* stream);
+static void stringify_number(json_field_t *field, FILE* stream);
+static void stringify_object(json_field_t *field, FILE* stream);
 
-json_object_t *json_new() {
+
+json_object_t *json_init() {
   json_object_t *obj;
 
   obj = malloc(sizeof(json_object_t));
@@ -17,7 +25,9 @@ json_object_t *json_new() {
     return NULL;
 
   obj->head = NULL;
-  obj->string_length = 3; // To hold "{}\0"
+  obj->parent = NULL;
+  obj->string_length = 3; // To hold "{}"
+
   return obj;
 }
 
@@ -29,13 +39,40 @@ static json_field_t *new_field(char *key) {
   if (new == NULL)
     return NULL;
 
-  new->key = malloc(strlen(key) * sizeof(char));
-  if (new->key == NULL)
-    return NULL;
-
-  strcpy(new->key, key);
+  if (key) {
+    new->key = malloc(strlen(key) * sizeof(char));
+    if (new->key == NULL)
+      return NULL;
+    strcpy(new->key, key);
+  }
+  else {
+    new->key = NULL;
+  }
   new->next = NULL;
 
+  return new;
+}
+
+json_field_t *json_new_object(char* key) {
+  json_field_t *new;
+
+  new = new_field(key);
+  if (new == NULL)
+    return NULL;
+
+  new->type = object;
+  new->stringifier = stringify_object;
+
+  new->value = malloc(sizeof(json_object_t));
+  if (new->value == NULL)
+    return NULL;
+
+  json_object_t *obj;
+  obj = (json_object_t *) new->value;
+  
+  obj->head = NULL;
+  obj->parent = NULL;
+  obj->string_length = 0;
   return new;
 }
 
@@ -45,13 +82,13 @@ json_field_t *json_new_string(char *key, char *value) {
   new = new_field(key);
   if (new == NULL)
     return NULL;
-
+  
+  new->type = string;
+  new->stringifier = stringify_string;
+  
   new->value = malloc(strlen(value) * sizeof(char));
   if (new->value == NULL)
     return NULL; 
-
-  // Set values
-  new->type = string;
   strcpy(new->value, value);
   
   return new;
@@ -70,6 +107,7 @@ json_field_t *json_new_long(char *key, json_number_t value) {
   
   // Set values
   new->type = number;
+  new->stringifier = stringify_number;
   *((json_number_t*) new->value) = value;
   
   return new;
@@ -77,6 +115,7 @@ json_field_t *json_new_long(char *key, json_number_t value) {
 
 void json_add(json_object_t *obj, json_field_t *field) {
   json_field_t *field_ptr;
+  json_object_t *obj_ptr;
   
   // If object is empty, create first field, otherwise append to end
   if (obj->head == NULL) {
@@ -88,26 +127,33 @@ void json_add(json_object_t *obj, json_field_t *field) {
     field_ptr->next = field;
   }
 
+  // Get the top object to hold the string length
+  for (obj_ptr = obj; obj_ptr->parent; obj_ptr = obj_ptr->parent)
+    ;
+
   // Update total length of stringified json
-  //printf("key len: %d, value len: %d\n", (int)field->key_strlen, (int)field->value_strlen);
-  obj->string_length += strlen(field->key);
-  long long n;
-  long long *ll_ptr;
+  obj_ptr->string_length++;
+  
+  if (field->key)
+    obj_ptr->string_length += strlen(field->key) + KEY_EXTRA_LENGTH;
+  
+  long long n; 
   switch (field->type) {
   case string:
-    obj->string_length += strlen(field->value) + STRING_EXTRA_LENGTH;
+    obj_ptr->string_length += strlen(field->value) + STRING_EXTRA_LENGTH;
     break;
   case number:
-    ll_ptr = (long long *) field->value;
-    n = *ll_ptr;
+    n = *((long long *) field->value);
     if (n < 0)
-      obj->string_length++;
+      obj_ptr->string_length++;
     do {
-      obj->string_length++;
+      obj_ptr->string_length++;
     } while (n /= 10);
-    obj->string_length += NUMBER_EXTRA_LENGTH;
+    obj_ptr->string_length += NUMBER_EXTRA_LENGTH;
     break;
-  case object: 
+  case object:
+    ((json_object_t *) field->value)->parent = obj;
+    obj_ptr->string_length += obj->string_length + OBJECT_EXTRA_LENGTH;
     break;
   case array:
     break;
@@ -118,13 +164,40 @@ void json_add(json_object_t *obj, json_field_t *field) {
   }
 }
 
+static void stringify_key(FILE* stream, char *key) {
+  fprintf(stream, "\"%s\":", key);
+}
+
+static void stringify_string(json_field_t *field, FILE* stream) {
+  fprintf(stream, "\"%s\"", (json_string_t) field->value);
+}
+
+static void stringify_number(json_field_t *field, FILE* stream) {
+  fprintf(stream, "%lld", *(json_number_t *) field->value);
+}
+
+static void stringify_object(json_field_t *field, FILE* stream) {
+  json_field_t *ptr;
+
+  fprintf(stream, "{");
+  for (ptr = ((json_object_t *) field->value)->head; ptr; ptr = ptr->next) {
+    if (ptr->key)
+      stringify_key(stream, ptr->key);
+    ptr->stringifier(ptr, stream);
+    
+    if (ptr->next)
+      fprintf(stream, ",");
+  }
+  fprintf(stream, "}");
+}
+
 char* json_stringify (json_object_t *obj) {
   char *ret;
-  json_field_t *ptr;
+  json_field_t *field;
   FILE *stream;
 
   // Allocate return string
-  ret = malloc(obj->string_length * sizeof(char));
+  ret = malloc((obj->string_length + 1) * sizeof(char));
   
   // Open stream on return string
   stream = fmemopen((char*) ret, obj->string_length, "w");
@@ -133,33 +206,19 @@ char* json_stringify (json_object_t *obj) {
     exit(EXIT_FAILURE);
   }
 
-  // Do the stringifying thing ring-a-ding-ding
-  fprintf(stream, "{");
-  for (ptr = obj->head; ptr; ptr = ptr->next) {
+  // Encapsulate object in field struct to adapt type to function
+  field = malloc(sizeof(json_field_t));
+  field->type = object;
+  field->key = NULL;
+  field->value = obj;
+  field->next = NULL;
+  field->stringifier = stringify_object;
 
-    switch (ptr->type) {
-    case string:
-      fprintf(stream, "\"%s\":\"%s\"", ptr->key, (char *) ptr->value);
-      break;
-    case number:
-      fprintf(stream, "\"%s\":%lld", ptr->key, *((json_number_t *) ptr->value));
-      break;
-    case object: 
-      break;
-    case array:
-      break;
-    case boolean:
-      break;
-    case nil:
-      break;
-    }
-    
-    if (ptr->next)
-      fprintf(stream, ",");
-  }
-  fprintf(stream, "}");
-  
+  // Do the stringifying 
+  field->stringifier(field, stream);
+
   // Clean up and return
+  free(field);
   fclose(stream);
   
   return ret;

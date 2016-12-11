@@ -6,63 +6,37 @@
 int main () {
   json_object_t *obj;
   json_field_t *field;
-  char *json_string, buf1[64], buf2[64];
-  int i;
+  char *json_string;
 
   // Create json object
-  obj = json_new();
+  printf("Create json object...");
+  obj = json_init();
   if (obj == NULL) {
     perror("error on creating json object");
     exit(EXIT_FAILURE);
   }
+  printf("Done!\n");
 
-  // Stringify empty json object
-  json_string = json_stringify(obj);
-  printf("%s\n", json_string);
-  free(json_string);
-  json_free(obj);
-
-  // Create json object
-  obj = json_new();
-
-  if (obj == NULL) {
-    perror("error on creating json object");
-    exit(EXIT_FAILURE);
-  }
-
-  // Populate json object with some string values
-  for (i=1; i<5; i++) {
-    sprintf(buf1, "key %d", i);
-    sprintf(buf2, "value %d", i);
-    field = json_new_string(buf1, buf2);
-    json_add(obj, field);
-  }
+  // Populate json object
+  printf("Populate json object... ");
+  json_add(obj, json_new_string("Band", "Metallica"));
+  field = json_new_object("Members");
+  json_add(obj, field);
+  json_add(field->value, json_new_string("Vocalist", "James Hetfield"));
+  json_add(field->value, json_new_string("Guitarist", "Kirk Hammet"));
+  printf("Done!\n");
 
   // Stringify populated json object
+  printf("Stringify json object... ");
   json_string = json_stringify(obj);
-  printf("%s\n", json_string);
+  printf("Done!\n");
+  printf("Result: %s\n", json_string);
+
+  // Clean up
+  printf("Clean up... ");
   free(json_string);
   json_free(obj);
-    
-  // Create json object
-  obj = json_new();
-  if (obj == NULL) {
-    perror("error on creating json object");
-    exit(EXIT_FAILURE);
-  }
+  printf("Done!\n");
 
-  // Populate json object with some number values
-  for (i=1; i<5; i++) {
-    sprintf(buf1, "key %d", i);
-    field = json_new_long(buf1, (long)i*i*i+(13*i)-1);
-    json_add(obj, field);
-  }
-
-  // Stringify populated json object
-  json_string = json_stringify(obj);
-  printf("%s\n", json_string);
-  free(json_string);
-  json_free(obj);
-  
   return 0;
 }
