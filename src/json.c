@@ -4,18 +4,26 @@
 
 #include "json.h"
 
-#define KEY_EXTRA_LENGTH    3 // "...":
-#define STRING_EXTRA_LENGTH 2 // "..."
-#define NUMBER_EXTRA_LENGTH 0 // 
-#define OBJECT_EXTRA_LENGTH 2 // {...}
+
+// Numbers of extra characters used in stringify function
+
+#define BASE_OBJECT_EXTRA_LENGTH 3 // {...}\0
+#define KEY_EXTRA_LENGTH    3      // "...":
+#define STRING_EXTRA_LENGTH 2      // "..."
+#define NUMBER_EXTRA_LENGTH 0      // 
+#define OBJECT_EXTRA_LENGTH 2      // {...}
+
+
+// Static function declarations
 
 static json_field_t *new_field(char *key);
-//static void stringify_helper(FILE *stream, json_field_t *ptr);
-static void stringify_key(FILE* stream, char *key);
+static void stringify_key(json_field_t *field, FILE* stream);
 static void stringify_string(json_field_t *field, FILE* stream);
 static void stringify_number(json_field_t *field, FILE* stream);
 static void stringify_object(json_field_t *field, FILE* stream);
 
+
+// Function definitions
 
 json_object_t *json_init() {
   json_object_t *obj;
@@ -26,7 +34,7 @@ json_object_t *json_init() {
 
   obj->head = NULL;
   obj->parent = NULL;
-  obj->string_length = 3; // To hold "{}"
+  obj->string_length = BASE_OBJECT_EXTRA_LENGTH;
 
   return obj;
 }
@@ -48,6 +56,7 @@ static json_field_t *new_field(char *key) {
   else {
     new->key = NULL;
   }
+
   new->next = NULL;
 
   return new;
@@ -101,13 +110,13 @@ json_field_t *json_new_long(char *key, json_number_t value) {
   if (new == NULL)
     return NULL;
 
+  new->type = number;
+  new->stringifier = stringify_number;
+
   new->value = malloc(sizeof(json_number_t));
   if (new->value == NULL)
     return NULL;
   
-  // Set values
-  new->type = number;
-  new->stringifier = stringify_number;
   *((json_number_t*) new->value) = value;
   
   return new;
@@ -164,8 +173,8 @@ void json_add(json_object_t *obj, json_field_t *field) {
   }
 }
 
-static void stringify_key(FILE* stream, char *key) {
-  fprintf(stream, "\"%s\":", key);
+static void stringify_key(json_field_t *field, FILE* stream) {
+  fprintf(stream, "\"%s\":", field->key);
 }
 
 static void stringify_string(json_field_t *field, FILE* stream) {
@@ -182,7 +191,7 @@ static void stringify_object(json_field_t *field, FILE* stream) {
   fprintf(stream, "{");
   for (ptr = ((json_object_t *) field->value)->head; ptr; ptr = ptr->next) {
     if (ptr->key)
-      stringify_key(stream, ptr->key);
+      stringify_key(ptr, stream);
     ptr->stringifier(ptr, stream);
     
     if (ptr->next)
