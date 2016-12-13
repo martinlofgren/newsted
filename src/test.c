@@ -5,12 +5,11 @@
 
 int main () {
   json_object_t *obj;
-  json_field_t *field;
   char *json_string;
 
   // Create json object
   printf("Create json object...");
-  obj = json_init();
+  obj = json_newstedt();
   if (obj == NULL) {
     perror("error on creating json object");
     exit(EXIT_FAILURE);
@@ -19,11 +18,11 @@ int main () {
 
   // Populate json object
   printf("Populate json object... ");
-  json_add(obj, json_new_string("Band", "Metallica"));
-  field = json_new_object("Members");
-  json_add(obj, field);
-  json_add(field->value, json_new_string("Vocalist", "James Hetfield"));
-  json_add(field->value, json_new_string("Guitarist", "Kirk Hammet"));
+  json_key_t *key;
+  json_value_t *val;
+  key = json_new_key("Band");
+  val = json_new_string("Metallica");
+  json_add_object(obj, key, val);
   printf("Done!\n");
 
   // Stringify populated json object

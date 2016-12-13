@@ -1,37 +1,60 @@
 #ifndef JSON_H
 #define JSON_H
 
+
+// Type definitions
+
 typedef enum json_type {
-  string,
-  number,
   object,
   array,
+  string,
+  num_integer,
+  num_float,
   boolean,
   nil
 } json_type_t;
 
-typedef struct json_field {
+struct json_key;
+struct json_value;
+struct json_object;
+struct json_array;
+
+typedef struct json_key {
+  char *data;
+  size_t len;
+  struct json_value *value;
+  struct json_key *next;
+} json_key_t;
+
+typedef struct json_value {
   enum json_type type;
-  char *key;
-  void *value;
-  struct json_field *next;
-  void (*stringifier)(struct json_field *field, FILE *stream);
-} json_field_t;
+  void *data;
+  size_t len;
+  void (*tostring)(struct json_value *value, FILE *stream);
+  struct json_value *next;
+} json_value_t;
 
 typedef struct json_object {
-  struct json_object *parent;
-  struct json_field *head;
-  size_t string_length;
+  struct json_key *head;
 } json_object_t;
 
-typedef char *json_string_t;
-typedef long long json_number_t;
+typedef struct json_array {
+  json_value_t *head;
+} json_array_t;
 
-json_object_t *json_init();
-json_field_t *json_new_object(char* key);
-json_field_t *json_new_string(char *key, char *value);
-json_field_t *json_new_long(char *key, json_number_t value);
-void json_add(json_object_t *obj, json_field_t *field);
+typedef char* json_string_t;
+typedef long long json_integer_t;
+typedef double json_float_t;
+
+
+// Function declarations
+
+json_object_t *json_newstedt();
+json_key_t *json_new_key();
+json_value_t *json_new_object();
+json_value_t *json_new_string(char *value);
+json_value_t *json_new_integer(long long value);
+void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
 char* json_stringify (json_object_t *obj);
 void json_free(json_object_t *obj);
 
