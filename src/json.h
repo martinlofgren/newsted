@@ -29,8 +29,8 @@ typedef struct json_key {
 typedef struct json_value {
   enum json_type type;
   void *data;
-  size_t len;
-  void (*tostring)(struct json_value *value, FILE *stream);
+  size_t len;;
+  void (*tostring) (struct json_value *value, FILE *stream);
   struct json_value *next;
 } json_value_t;
 
@@ -53,7 +53,7 @@ json_object_t *json_newstedt();
 json_key_t *json_new_key();
 json_value_t *json_new_object();
 json_value_t *json_new_string(char *value);
-json_value_t *json_new_integer(long long value);
+json_value_t *json_new_integer(json_integer_t value);
 void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
 char* json_stringify (json_object_t *obj);
 void json_free(json_object_t *obj);

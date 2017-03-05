@@ -20,8 +20,8 @@ static void stringify_key(json_key_t *key, FILE* stream);
 static void stringify_string(json_value_t *value, FILE* stream);
 static void stringify_integer(json_value_t *value, FILE* stream);
 static void stringify_object(json_value_t *value, FILE* stream);
-static int integer_strlen(long long value);
-
+static size_t integer_strlen(json_integer_t value)  __attribute__ ((pure));
+static size_t obj_strlen(json_object_t *value) __attribute__ ((pure));
 
 // Function definitions
 
@@ -52,6 +52,23 @@ json_key_t *json_new_key(char* key) {
   return json_key;
 }
 
+json_value_t *json_new_object() {
+  json_value_t *new;
+
+  new = malloc(sizeof(json_value_t));
+  if (new == NULL)
+    return NULL;
+
+  new->type = object;
+  new->tostring = stringify_object;
+
+  new->data = json_newstedt();
+  if (new->data == NULL)
+    return NULL;
+
+  return new;
+}
+
 json_value_t *json_new_string(char *value) {
   json_value_t *new;
 
@@ -60,32 +77,18 @@ json_value_t *json_new_string(char *value) {
     return NULL;
 
   new->type = string;
+  new->tostring = stringify_string;
   new->len = strlen(value);
   
-  new->data = malloc(strlen(value) * sizeof(char));
+  new->data = malloc(new->len * sizeof(char));
   if (new->data == NULL)
     return NULL; 
   memcpy(new->data, value, new->len);
 
-  new->tostring = stringify_string;
-
   return new;
 }
 
-static int integer_strlen(long long value) {
-  int n;
-  
-  n = 0;
-  if (value < 0)
-    n++;
-  do {
-    n++;
-  } while (value /= 10);
-
-  return n;
-}
-
-json_value_t *json_new_integer(long long value) {
+json_value_t *json_new_integer(json_integer_t value) {
   json_value_t *new;
 
   new = malloc(sizeof(json_value_t));
@@ -93,14 +96,13 @@ json_value_t *json_new_integer(long long value) {
     return NULL;
 
   new->type = num_integer;
+  new->tostring = stringify_integer;
   new->len = integer_strlen(value);
 
   new->data = malloc(sizeof(json_integer_t));
   if (new->data == NULL)
     return NULL;
   *(json_integer_t*) new->data = value;
-
-  new->tostring = stringify_integer;
   
   return new;
 }
@@ -117,7 +119,7 @@ void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value) {
   key->value = value;
   
   // If object is empty, create first value, else append to end of linked list
-  if (obj->head == NULL) {
+  if (obj->head == NULL) { // Is this clause really necessary?
     obj->head = key;
   }
   else {
@@ -127,6 +129,57 @@ void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value) {
     
     key_ptr->next = key;
   }
+}
+
+static size_t obj_strlen(json_object_t *obj) {
+  json_key_t *key_ptr;
+  json_value_t *value_ptr;
+  size_t ret;
+
+  ret = 0;
+
+  for (key_ptr = obj->head; key_ptr; key_ptr = key_ptr->next) {
+    ret += key_ptr->len + KEY_EXTRA_LENGTH;
+    value_ptr = key_ptr->value;
+
+    switch (value_ptr->type) {
+    case object:
+      ret += obj_strlen((json_object_t *) value_ptr->data);
+      break;
+    case array:
+      break;
+    case string:
+      ret += value_ptr->len + STRING_EXTRA_LENGTH;
+      break;
+    case num_integer:
+      ret += value_ptr->len + NUMBER_EXTRA_LENGTH;
+      break;
+    case num_float:
+      break;
+    case boolean:
+      break;
+    case nil:
+      break;
+    }
+
+    if (key_ptr->next)
+      ret++;
+  }
+
+  return ret + OBJECT_EXTRA_LENGTH;
+}
+
+static size_t integer_strlen(json_integer_t value) {
+  size_t n;
+
+  n = 0;
+  if (value < 0)
+    n++;
+  do {
+    n++;
+  } while (value /= 10);
+
+  return n;
 }
 
 static void stringify_key(json_key_t *key, FILE* stream) {
@@ -157,30 +210,26 @@ static void stringify_object(json_value_t *value, FILE* stream) {
   fprintf(stream, "}");
 }
 
-static size_t obj_len(json_object_t *obj) {
-  return 0;
-}
-
 char* json_stringify (json_object_t *obj) {
   char *ret;
   json_value_t *value;
   FILE *stream;
   size_t string_length;
 
-  string_length = obj_len(obj);
+  string_length = obj_strlen(obj) + 1;
 
   // Allocate return string
   ret = malloc(string_length * sizeof(char));
   if (ret == NULL)
     return NULL;
-  /*  
+
   // Open stream on return string
   stream = fmemopen((char*) ret, string_length, "w");
   if (stream == NULL) {
     perror("error opening stream to return buffer");
     exit(EXIT_FAILURE);
   }
-  */
+
   // Encapsulate object in value struct to adapt type to function
   value = malloc(sizeof(json_value_t));
   if (value == NULL)
@@ -193,9 +242,9 @@ char* json_stringify (json_object_t *obj) {
   value->next = NULL;
 
   // Do the stringifying
-  stream = stdout; // JUST FOR DEBUGGING
   value->tostring(value, stream);
-
+  ret[string_length] = 0;
+  
   // Clean up and return
   free(value);
   fclose(stream);
