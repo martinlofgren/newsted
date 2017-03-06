@@ -1,64 +1,86 @@
-#ifndef JSON_H
-#define JSON_H
+/*
+ * newstedt - a json library for C.
+ *
+ * Latest source is available at https://github.com/martinlofgren/newstedt
+ *
+ * Author: Martin Löfgren <martin.c.lofgren@gmail.com>
+ */
 
-#include <stdlib.h> //malloc
-#include <string.h> //strlen
-#include <stdio.h>  //printf
+#ifndef NEWSTED_H
+#define NEWSTED_H
 
-// Type definitions
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-typedef enum json_type {
-  object,
-  array,
-  string,
-  num_integer,
-  num_float,
-  boolean,
-  nil
-} json_type_t;
+#include "types.h"
 
-struct json_key;
-struct json_value;
-struct json_object;
-struct json_array;
+json_object_t *json_newsted();
+/*
+ * Create root node.
+ *
+ * Return: empty json object.
+ */
 
-typedef struct json_key {
-  char *data;
-  size_t len;
-  struct json_value *value;
-  struct json_key *next;
-} json_key_t;
+json_key_t *json_new_key(char *key);
+/*
+ * Create new json key.
+ *
+ * key: char pointer to null-terminated string
+ *
+ * Return: json key
+ */
 
-typedef struct json_value {
-  enum json_type type;
-  void *data;
-  size_t len;;
-  void (*tostring) (struct json_value *value, FILE *stream);
-  struct json_value *next;
-} json_value_t;
-
-typedef struct json_object {
-  struct json_key *head;
-} json_object_t;
-
-typedef struct json_array {
-  json_value_t *head;
-} json_array_t;
-
-typedef char* json_string_t;
-typedef long long json_integer_t;
-typedef double json_float_t;
-
-
-// Function declarations
-
-json_object_t *json_newstedt();
-json_key_t *json_new_key();
 json_value_t *json_new_object();
-json_value_t *json_new_string(char *value);
-json_value_t *json_new_integer(json_integer_t value);
-void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
-char* json_stringify (json_object_t *obj);
-void json_free(json_object_t *obj);
+/*
+ * Create new json object.
+ *
+ * Return: json value of type object
+ */
 
-#endif //JSON_H
+json_value_t *json_new_string(char *value);
+/*
+ * Create new json string.
+ *
+ * value: char pointer to null-terminated string
+ *
+ * Return: json value of type string
+ */
+
+json_value_t *json_new_integer(json_integer_t value);
+/*
+ * Create new json number
+ *
+ * value: integer number. Internally represented as long long integer and should
+ *        thus be casted to this if int or long.
+ *
+ * Return: json value of type integer
+ */
+
+void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
+/*
+ * Add key/value pair to an json object.
+ *
+ * obj:   the object to be populated by the key/value pair
+ * key:   json key
+ * value: json value
+ */
+
+char* json_stringify (json_object_t *obj);
+/*
+ * Create a string representation of the json object. The returned string has
+ * been malloced by the function and should thus be freed by the caller.
+ *
+ * obj: the object to be stringified
+ *
+ * Return: null-terminated char pointer to the string
+ */
+
+void json_free(json_object_t *obj);
+/*
+ * Free all allocated resources used by the json object.
+ *
+ * obj: the json object to be freed
+ */
+
+#endif //NEWSTED_H

@@ -28,7 +28,7 @@ static size_t obj_strlen(json_object_t *value) __attribute__ ((pure));
 
 // Function definitions
 
-json_object_t *json_newstedt() {
+json_object_t *json_newsted() {
   json_object_t *obj;
 
   obj = malloc(sizeof(json_object_t));
@@ -65,7 +65,7 @@ json_value_t *json_new_object() {
   new->type = object;
   new->tostring = stringify_object;
 
-  new->data = json_newstedt();
+  new->data = json_newsted();
   if (new->data == NULL)
     return NULL;
 

@@ -21,4 +21,4 @@ json_free(obj);
 free(string);
 ```
 
-
+For a detailed description of the library API, see the `newsted.h` header file.

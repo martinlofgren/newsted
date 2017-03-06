@@ -9,7 +9,7 @@ int main () {
 
   // Create json object
   printf("Create json object...");
-  obj = json_newstedt();
+  obj = json_newsted();
   if (obj == NULL) {
     perror("error on creating json object");
     exit(EXIT_FAILURE);
