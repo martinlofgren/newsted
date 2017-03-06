@@ -21,4 +21,4 @@ json_free(obj);
 free(string);
 ```
 
-A complete working example is to be found in (src/test.c). For a detailed description of the library API, see the (src/newsted.h) header file. 
+A complete working example is to be found in [`test.c`](src/test.c). For a detailed description of the library API, see the [`hewsted.h`](src/newsted.h) header file. 
