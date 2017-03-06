@@ -1,17 +1,20 @@
-#include <stdlib.h> //malloc
-#include <string.h> //strlen
-#include <stdio.h>  //printf
+/*
+ * newstedt - a json library for C.
+ *
+ * Latest source is available at https://github.com/martinlofgren/newstedt
+ *
+ * Author: Martin Löfgren <martin.c.lofgren@gmail.com>
+ */
 
 #include "json.h"
 
 
 // Numbers of extra characters used in stringify function
 
-#define BASE_OBJECT_EXTRA_LENGTH 3 // {...}\0
-#define KEY_EXTRA_LENGTH    3      // "...":
-#define STRING_EXTRA_LENGTH 2      // "..."
-#define NUMBER_EXTRA_LENGTH 0      // 
-#define OBJECT_EXTRA_LENGTH 2      // {...}
+#define KEY_EXTRA_LENGTH    3 // "...":
+#define STRING_EXTRA_LENGTH 2 // "..."
+#define NUMBER_EXTRA_LENGTH 0 // 
+#define OBJECT_EXTRA_LENGTH 2 // {...}
 
 
 // Static function declarations

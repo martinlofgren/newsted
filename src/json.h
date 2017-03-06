@@ -1,6 +1,9 @@
 #ifndef JSON_H
 #define JSON_H
 
+#include <stdlib.h> //malloc
+#include <string.h> //strlen
+#include <stdio.h>  //printf
 
 // Type definitions
 
