@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "json.h"
+#include "newsted.h"
 
 int main () {
   json_object_t *obj;

@@ -6,7 +6,7 @@
  * Author: Martin Löfgren <martin.c.lofgren@gmail.com>
  */
 
-#include "json.h"
+#include "newsted.h"
 
 
 // Numbers of extra characters used in stringify function
