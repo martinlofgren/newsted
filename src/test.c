@@ -8,7 +8,7 @@ int main () {
   char *json_string;
 
   // Create json object
-  printf("Create json object...");
+  printf("Create json object... ");
   obj = json_newsted();
   if (obj == NULL) {
     perror("error on creating json object");
@@ -22,6 +22,9 @@ int main () {
   json_value_t *val;
   key = json_new_key("Band");
   val = json_new_string("Metallica");
+  json_add_object(obj, key, val);
+  key = json_new_key("Review");
+  val = json_new_string("They're great!");
   json_add_object(obj, key, val);
   printf("Done!\n");
 

@@ -47,7 +47,8 @@ json_key_t *json_new_key(char* key) {
   if (json_key == NULL)
     return NULL;
 
-  json_key->len = strlen(key);
+  json_key->len = strlen(key) + 1;
+  json_key->next = NULL;
 
   json_key->data = malloc(json_key->len * sizeof(char));
   memcpy(json_key->data, key, json_key->len);
@@ -81,7 +82,7 @@ json_value_t *json_new_string(char *value) {
 
   new->type = string;
   new->tostring = stringify_string;
-  new->len = strlen(value);
+  new->len = strlen(value) + 1;
   
   new->data = malloc(new->len * sizeof(char));
   if (new->data == NULL)
@@ -246,7 +247,7 @@ char* json_stringify (json_object_t *obj) {
 
   // Do the stringifying
   value->tostring(value, stream);
-  ret[string_length] = 0;
+  ret[string_length - 1] = 0;
   
   // Clean up and return
   free(value);
@@ -258,15 +259,14 @@ char* json_stringify (json_object_t *obj) {
 void json_free(json_object_t *obj) {
   json_key_t *cur, *next;
 
-  cur = obj->head;
-  while (cur) {
+  next = obj->head;
+  while ((cur = next)) {
     next = cur->next;
 
     free((cur->value)->data);
     free(cur->value);
+    free(cur->data);
     free(cur);
-    
-    cur = next;
   }
   free(obj);
 }
