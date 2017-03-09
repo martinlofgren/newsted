@@ -4,7 +4,7 @@ SRCS   	= $(wildcard src/*.c)
 CFLAGS 	= -Wall
 
 test : $(SRCS)
-	cc $(SRCS) -o test $(CFLAGS)
+	cc $(SRCS) -o test $(CFLAGS) -lm
 
 .PHONY  : clean
 clean   :

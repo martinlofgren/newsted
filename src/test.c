@@ -23,8 +23,14 @@ int main () {
   key = json_new_key("Band");
   val = json_new_string("Metallica");
   json_add_object(obj, key, val);
+  key = json_new_key("Number of albums");
+  val = json_new_integer(23);
+  json_add_object(obj, key, val);
   key = json_new_key("Review");
-  val = json_new_string("They're great!");
+  val = json_new_float(1.22);
+  json_add_object(obj, key, val);
+  key = json_new_key("Great?");
+  val = json_new_boolean(TRUE);
   json_add_object(obj, key, val);
   printf("Done!\n");
 

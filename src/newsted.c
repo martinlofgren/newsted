@@ -7,14 +7,16 @@
  */
 
 #include "newsted.h"
+#include "math.h"
 
 
 // Numbers of extra characters used in stringify function
 
-#define KEY_EXTRA_LENGTH    3 // "...":
-#define STRING_EXTRA_LENGTH 2 // "..."
-#define NUMBER_EXTRA_LENGTH 0 // 
-#define OBJECT_EXTRA_LENGTH 2 // {...}
+#define KEY_EXTRA_LENGTH     3 // "...":
+#define STRING_EXTRA_LENGTH  2 // "..."
+#define NUMBER_EXTRA_LENGTH  0 // 
+#define OBJECT_EXTRA_LENGTH  2 // {...}
+#define BOOLEAN_EXTRA_LENGTH 0 // 
 
 
 // Static function declarations
@@ -22,8 +24,11 @@
 static void stringify_key(json_key_t *key, FILE* stream);
 static void stringify_string(json_value_t *value, FILE* stream);
 static void stringify_integer(json_value_t *value, FILE* stream);
+static void stringify_float(json_value_t *value, FILE* stream);
+static void stringify_boolean(json_value_t *value, FILE* stream);
 static void stringify_object(json_value_t *value, FILE* stream);
 static size_t integer_strlen(json_integer_t value)  __attribute__ ((pure));
+static size_t float_strlen(json_float_t value)  __attribute__ ((pure));
 static size_t obj_strlen(json_object_t *value) __attribute__ ((pure));
 
 // Function definitions
@@ -47,11 +52,11 @@ json_key_t *json_new_key(char* key) {
   if (json_key == NULL)
     return NULL;
 
-  json_key->len = strlen(key) + 1;
+  json_key->len = strlen(key);
   json_key->next = NULL;
 
-  json_key->data = malloc(json_key->len * sizeof(char));
-  memcpy(json_key->data, key, json_key->len);
+  json_key->data = malloc((json_key->len + 1) * sizeof(char));
+  memcpy(json_key->data, key, json_key->len + 1);
 
   return json_key;
 }
@@ -82,12 +87,12 @@ json_value_t *json_new_string(char *value) {
 
   new->type = string;
   new->tostring = stringify_string;
-  new->len = strlen(value) + 1;
+  new->len = strlen(value);
   
-  new->data = malloc(new->len * sizeof(char));
+  new->data = malloc((new->len + 1) * sizeof(char));
   if (new->data == NULL)
     return NULL; 
-  memcpy(new->data, value, new->len);
+  memcpy(new->data, value, new->len + 1);
 
   return new;
 }
@@ -108,6 +113,44 @@ json_value_t *json_new_integer(json_integer_t value) {
     return NULL;
   *(json_integer_t*) new->data = value;
   
+  return new;
+}
+
+json_value_t *json_new_float(json_float_t value) {
+  json_value_t *new;
+
+  new = malloc(sizeof(json_value_t));
+  if (new == NULL)
+    return NULL;
+
+  new->type = num_float;
+  new->tostring = stringify_float;
+  new->len = float_strlen(value);
+
+  new->data = malloc(sizeof(json_float_t));
+  if (new->data == NULL)
+    return NULL;
+  *(json_float_t*) new->data = value;
+
+  return new;
+}
+
+json_value_t *json_new_boolean(json_boolean_t value) {
+  json_value_t *new;
+
+  new = malloc(sizeof(json_value_t));
+  if (new == NULL)
+    return NULL;
+
+  new->type = boolean;
+  new->tostring = stringify_boolean;
+  new->len = 5;
+
+  new->data = malloc(sizeof(json_boolean_t));
+  if (new->data == NULL)
+    return NULL;
+  *(json_boolean_t*) new->data = value;
+
   return new;
 }
 
@@ -159,8 +202,10 @@ static size_t obj_strlen(json_object_t *obj) {
       ret += value_ptr->len + NUMBER_EXTRA_LENGTH;
       break;
     case num_float:
+      ret += value_ptr->len + NUMBER_EXTRA_LENGTH;
       break;
     case boolean:
+      ret += value_ptr->len + BOOLEAN_EXTRA_LENGTH;
       break;
     case nil:
       break;
@@ -186,6 +231,12 @@ static size_t integer_strlen(json_integer_t value) {
   return n;
 }
 
+static size_t float_strlen(json_float_t value) {
+  char tmp[22];
+
+  return sprintf(tmp, "%.17g", value);
+}
+
 static void stringify_key(json_key_t *key, FILE* stream) {
   fprintf(stream, "\"%s\":", key->data);
 }
@@ -196,6 +247,14 @@ static void stringify_string(json_value_t *value, FILE* stream) {
 
 static void stringify_integer(json_value_t *value, FILE* stream) {
   fprintf(stream, "%lld", *(json_integer_t *) value->data);
+}
+
+static void stringify_float(json_value_t *value, FILE* stream) {
+  fprintf(stream, "%.17g", *(json_float_t *) value->data);
+}
+
+static void stringify_boolean(json_value_t *value, FILE* stream) {
+  fprintf(stream, (*(json_float_t *) value->data != 0) ? "true" : "false");
 }
 
 static void stringify_object(json_value_t *value, FILE* stream) {

@@ -19,7 +19,7 @@ json_object_t *json_newsted();
 /*
  * Create root node.
  *
- * Return: empty json object.
+ * Return value: empty json object.
  */
 
 json_key_t *json_new_key(char *key);
@@ -28,14 +28,14 @@ json_key_t *json_new_key(char *key);
  *
  * key: char pointer to null-terminated string
  *
- * Return: json key
+ * Return value: json key
  */
 
 json_value_t *json_new_object();
 /*
  * Create new json object.
  *
- * Return: json value of type object
+ * Return value: json value of type object
  */
 
 json_value_t *json_new_string(char *value);
@@ -44,7 +44,7 @@ json_value_t *json_new_string(char *value);
  *
  * value: char pointer to null-terminated string
  *
- * Return: json value of type string
+ * Return value: json value of type string
  */
 
 json_value_t *json_new_integer(json_integer_t value);
@@ -54,8 +54,14 @@ json_value_t *json_new_integer(json_integer_t value);
  * value: integer number. Internally represented as long long integer and should
  *        thus be casted to this if int or long.
  *
- * Return: json value of type integer
+ * Return value: json value of type integer
  */
+
+json_value_t *json_new_float(json_float_t value);
+/* DOCUMENT ME */
+
+json_value_t *json_new_boolean(json_boolean_t value);
+/* ME TOO */
 
 void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
 /*
@@ -73,7 +79,7 @@ char* json_stringify (json_object_t *obj);
  *
  * obj: the object to be stringified
  *
- * Return: null-terminated char pointer to the string
+ * Return value: null-terminated char pointer to the string
  */
 
 void json_free(json_object_t *obj);
