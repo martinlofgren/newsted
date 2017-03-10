@@ -21,6 +21,10 @@
 
 // Static function declarations
 
+static json_value_t *new_value (json_type_t new_type_enum,
+				void (*new_tostring) (struct json_value *value, FILE *stream),
+				size_t new_strlen,
+				size_t new_data_size);
 static void stringify_key(json_key_t *key, FILE* stream);
 static void stringify_string(json_value_t *value, FILE* stream);
 static void stringify_integer(json_value_t *value, FILE* stream);
@@ -61,38 +65,49 @@ json_key_t *json_new_key(char* key) {
   return json_key;
 }
 
-json_value_t *json_new_object() {
+static json_value_t *new_value (json_type_t new_type_enum,
+				void (*new_tostring) (struct json_value *value, FILE *stream),
+				size_t new_strlen,
+				size_t new_data_size) {
   json_value_t *new;
 
   new = malloc(sizeof(json_value_t));
   if (new == NULL)
     return NULL;
 
-  new->type = object;
-  new->tostring = stringify_object;
+  new->type = new_type_enum;
+  new->tostring = new_tostring;
+  new->strlen = new_strlen;
 
-  new->data = json_newsted();
-  if (new->data == NULL)
-    return NULL;
+  if (new_data_size) {
+    new->data = malloc(new_data_size);
+    if (new->data == NULL)
+      return NULL;
+  }
+
+  return new;
+}
+
+json_value_t *json_new_object() {
+  json_value_t *new;
+
+  if ((new = new_value(object, stringify_object, 0, 0))) {
+    new->data = json_newsted();
+    if (new->data == NULL)
+      return NULL;
+  }
 
   return new;
 }
 
 json_value_t *json_new_string(char *value) {
   json_value_t *new;
+  size_t len;
 
-  new = malloc(sizeof(json_value_t));
-  if (new == NULL)
-    return NULL;
-
-  new->type = string;
-  new->tostring = stringify_string;
-  new->len = strlen(value);
-  
-  new->data = malloc((new->len + 1) * sizeof(char));
-  if (new->data == NULL)
-    return NULL; 
-  memcpy(new->data, value, new->len + 1);
+  len = strlen(value);
+  if ((new = new_value(string, stringify_string, len, (len + 1) * sizeof(json_float_t)))) {
+    memcpy(new->data, value, new->strlen + 1);
+  }
 
   return new;
 }
@@ -100,18 +115,9 @@ json_value_t *json_new_string(char *value) {
 json_value_t *json_new_integer(json_integer_t value) {
   json_value_t *new;
 
-  new = malloc(sizeof(json_value_t));
-  if (new == NULL)
-    return NULL;
-
-  new->type = num_integer;
-  new->tostring = stringify_integer;
-  new->len = integer_strlen(value);
-
-  new->data = malloc(sizeof(json_integer_t));
-  if (new->data == NULL)
-    return NULL;
-  *(json_integer_t*) new->data = value;
+  if ((new = new_value(num_integer, stringify_integer, integer_strlen(value), sizeof(json_integer_t)))) {
+    *(json_integer_t*) new->data = value;
+  }
   
   return new;
 }
@@ -119,18 +125,9 @@ json_value_t *json_new_integer(json_integer_t value) {
 json_value_t *json_new_float(json_float_t value) {
   json_value_t *new;
 
-  new = malloc(sizeof(json_value_t));
-  if (new == NULL)
-    return NULL;
-
-  new->type = num_float;
-  new->tostring = stringify_float;
-  new->len = float_strlen(value);
-
-  new->data = malloc(sizeof(json_float_t));
-  if (new->data == NULL)
-    return NULL;
-  *(json_float_t*) new->data = value;
+  if ((new = new_value(num_float, stringify_float, float_strlen(value), sizeof(json_float_t)))) {
+    *(json_float_t*) new->data = value;
+  }
 
   return new;
 }
@@ -138,18 +135,9 @@ json_value_t *json_new_float(json_float_t value) {
 json_value_t *json_new_boolean(json_boolean_t value) {
   json_value_t *new;
 
-  new = malloc(sizeof(json_value_t));
-  if (new == NULL)
-    return NULL;
-
-  new->type = boolean;
-  new->tostring = stringify_boolean;
-  new->len = 5;
-
-  new->data = malloc(sizeof(json_boolean_t));
-  if (new->data == NULL)
-    return NULL;
-  *(json_boolean_t*) new->data = value;
+  if ((new = new_value(boolean, stringify_boolean, 5, sizeof(json_boolean_t)))) {
+    *(json_boolean_t*) new->data = value;
+  }
 
   return new;
 }
@@ -196,16 +184,16 @@ static size_t obj_strlen(json_object_t *obj) {
     case array:
       break;
     case string:
-      ret += value_ptr->len + STRING_EXTRA_LENGTH;
+      ret += value_ptr->strlen + STRING_EXTRA_LENGTH;
       break;
     case num_integer:
-      ret += value_ptr->len + NUMBER_EXTRA_LENGTH;
+      ret += value_ptr->strlen + NUMBER_EXTRA_LENGTH;
       break;
     case num_float:
-      ret += value_ptr->len + NUMBER_EXTRA_LENGTH;
+      ret += value_ptr->strlen + NUMBER_EXTRA_LENGTH;
       break;
     case boolean:
-      ret += value_ptr->len + BOOLEAN_EXTRA_LENGTH;
+      ret += value_ptr->strlen + BOOLEAN_EXTRA_LENGTH;
       break;
     case nil:
       break;
@@ -254,7 +242,7 @@ static void stringify_float(json_value_t *value, FILE* stream) {
 }
 
 static void stringify_boolean(json_value_t *value, FILE* stream) {
-  fprintf(stream, (*(json_float_t *) value->data != 0) ? "true" : "false");
+  fprintf(stream, (*(json_float_t *) value->data != FALSE) ? "true" : "false");
 }
 
 static void stringify_object(json_value_t *value, FILE* stream) {
@@ -300,7 +288,7 @@ char* json_stringify (json_object_t *obj) {
   
   value->type = object;
   value->data = obj;
-  value->len = 0;
+  value->strlen = 0;
   value->tostring = stringify_object;
   value->next = NULL;
 
