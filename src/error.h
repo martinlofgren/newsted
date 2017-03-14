@@ -1,0 +1,3 @@
+#define SUCCESS 0
+#define ERR_MEM_ALLOC 1
+#define ERR_KEY_COLLISION 2

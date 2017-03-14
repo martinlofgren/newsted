@@ -14,21 +14,13 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "error.h"
 
 json_object_t *json_newsted();
 /*
  * Create root node.
  *
  * Return value: empty json object.
- */
-
-json_key_t *json_new_key(char *key);
-/*
- * Create new json key.
- *
- * key: char pointer to null-terminated string
- *
- * Return value: json key
  */
 
 json_value_t *json_new_object();
@@ -63,13 +55,15 @@ json_value_t *json_new_float(json_float_t value);
 json_value_t *json_new_boolean(json_boolean_t value);
 /* ME TOO */
 
-void json_add_object(json_object_t *obj, json_key_t *key, json_value_t *value);
+json_status_t json_add_object(json_object_t *obj, char *key, json_value_t *value);
 /*
  * Add key/value pair to an json object.
  *
  * obj:   the object to be populated by the key/value pair
  * key:   json key
  * value: json value
+ *
+ * Return value: Success/failure (see error.h)
  */
 
 char* json_stringify (json_object_t *obj);

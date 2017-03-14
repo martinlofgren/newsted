@@ -37,6 +37,7 @@ typedef struct json_value {
 
 typedef struct json_key {
   char *data;
+  int hash;
   size_t len;
   struct json_value *value;
   struct json_key *next;
@@ -54,5 +55,7 @@ typedef char* json_string_t;
 typedef long long json_integer_t;
 typedef double json_float_t;
 typedef int json_boolean_t;
+
+typedef int json_status_t;
 
 #endif //NEWSTED_TYPES_H

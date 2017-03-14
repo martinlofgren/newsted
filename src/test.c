@@ -18,20 +18,10 @@ int main () {
 
   // Populate json object
   printf("Populate json object... ");
-  json_key_t *key;
-  json_value_t *val;
-  key = json_new_key("Band");
-  val = json_new_string("Metallica");
-  json_add_object(obj, key, val);
-  key = json_new_key("Number of albums");
-  val = json_new_integer(23);
-  json_add_object(obj, key, val);
-  key = json_new_key("Review");
-  val = json_new_float(1.22);
-  json_add_object(obj, key, val);
-  key = json_new_key("Great?");
-  val = json_new_boolean(TRUE);
-  json_add_object(obj, key, val);
+  json_add_object(obj, "Band", json_new_string("Metallica"));
+  json_add_object(obj, "Number of albums", json_new_integer(23));
+  json_add_object(obj, "Review", json_new_float(1.22));
+  json_add_object(obj, "Great?", json_new_boolean(TRUE));
   printf("Done!\n");
 
   // Stringify populated json object
