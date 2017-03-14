@@ -112,9 +112,8 @@ json_value_t *json_new_string(char *value) {
   size_t len;
 
   len = strlen(value);
-  if ((new = new_value(string, stringify_string, len, (len + 1) * sizeof(json_float_t)))) {
+  if ((new = new_value(string, stringify_string, len, (len + 1) * sizeof(json_float_t))))
     memcpy(new->data, value, new->strlen + 1);
-  }
 
   return new;
 }
@@ -122,9 +121,8 @@ json_value_t *json_new_string(char *value) {
 json_value_t *json_new_integer(json_integer_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_integer, stringify_integer, integer_strlen(value), sizeof(json_integer_t)))) {
+  if ((new = new_value(num_integer, stringify_integer, integer_strlen(value), sizeof(json_integer_t))))
     *(json_integer_t*) new->data = value;
-  }
   
   return new;
 }
@@ -132,9 +130,8 @@ json_value_t *json_new_integer(json_integer_t value) {
 json_value_t *json_new_float(json_float_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_float, stringify_float, float_strlen(value), sizeof(json_float_t)))) {
+  if ((new = new_value(num_float, stringify_float, float_strlen(value), sizeof(json_float_t))))
     *(json_float_t*) new->data = value;
-  }
 
   return new;
 }
@@ -142,9 +139,8 @@ json_value_t *json_new_float(json_float_t value) {
 json_value_t *json_new_boolean(json_boolean_t value) {
   json_value_t *new;
 
-  if ((new = new_value(boolean, stringify_boolean, 5, sizeof(json_boolean_t)))) {
+  if ((new = new_value(boolean, stringify_boolean, 5, sizeof(json_boolean_t))))
     *(json_boolean_t*) new->data = value;
-  }
 
   return new;
 }
