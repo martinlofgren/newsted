@@ -55,7 +55,7 @@ json_value_t *json_new_float(json_float_t value);
 json_value_t *json_new_boolean(json_boolean_t value);
 /* ME TOO */
 
-json_status_t json_add_object(json_object_t *obj, char *key, json_value_t *value);
+json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value);
 /*
  * Add key/value pair to an json object.
  *
@@ -66,7 +66,7 @@ json_status_t json_add_object(json_object_t *obj, char *key, json_value_t *value
  * Return value: Success/failure (see error.h)
  */
 
-char* json_stringify (json_object_t *obj);
+json_status_t json_stringify (json_value_t *value, FILE *stream);
 /*
  * Create a string representation of the json object. The returned string has
  * been malloced by the function and should thus be freed by the caller.
@@ -76,7 +76,7 @@ char* json_stringify (json_object_t *obj);
  * Return value: null-terminated char pointer to the string
  */
 
-void json_free(json_object_t *obj);
+void json_free(json_value_t *value);
 /*
  * Free all allocated resources used by the json object.
  *

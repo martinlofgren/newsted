@@ -30,8 +30,10 @@ typedef enum json_type {
 typedef struct json_value {
   enum json_type type;
   void *data;
-  size_t strlen;;
+  size_t len;
   void (*tostring) (struct json_value *value, FILE *stream);
+  size_t (*strlen) (struct json_value *value);
+  void (*free) (struct json_value *value);
   struct json_value *next;
 } json_value_t;
 
