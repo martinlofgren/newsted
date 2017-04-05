@@ -65,7 +65,7 @@ json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value)
 json_status_t json_add_array(json_value_t *array, json_value_t *value);
 /* DOCUMENT ME */
 
-json_status_t json_stringify (json_value_t *value, FILE *stream);
+json_status_t json_generate (json_value_t *value, FILE *stream);
 /* DOCUMENT ME */
 
 void json_free(json_value_t *value);

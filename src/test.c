@@ -33,7 +33,7 @@ int main () {
   // Stringify populated json object
   printf("Stringify json object...\n");
   printf("Result: ");
-  json_stringify(obj, stdout);
+  json_generate(obj, stdout);
 
   // Clean up
   printf("\nClean up... ");
