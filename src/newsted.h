@@ -16,19 +16,15 @@
 #include "types.h"
 #include "error.h"
 
-json_object_t *json_newsted();
-/*
- * Create root node.
- *
- * Return value: empty json object.
- */
-
 json_value_t *json_new_object();
 /*
  * Create new json object.
  *
  * Return value: json value of type object
  */
+
+json_value_t *json_new_array();
+/* DOCUMENT ME */
 
 json_value_t *json_new_string(char *value);
 /*
@@ -53,7 +49,7 @@ json_value_t *json_new_float(json_float_t value);
 /* DOCUMENT ME */
 
 json_value_t *json_new_boolean(json_boolean_t value);
-/* ME TOO */
+/* DOCUMENT ME */
 
 json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value);
 /*
@@ -66,15 +62,11 @@ json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value)
  * Return value: Success/failure (see error.h)
  */
 
+json_status_t json_add_array(json_value_t *array, json_value_t *value);
+/* DOCUMENT ME */
+
 json_status_t json_stringify (json_value_t *value, FILE *stream);
-/*
- * Create a string representation of the json object. The returned string has
- * been malloced by the function and should thus be freed by the caller.
- *
- * obj: the object to be stringified
- *
- * Return value: null-terminated char pointer to the string
- */
+/* DOCUMENT ME */
 
 void json_free(json_value_t *value);
 /*

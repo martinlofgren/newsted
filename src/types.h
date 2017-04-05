@@ -34,7 +34,6 @@ typedef struct json_value {
   void (*tostring) (struct json_value *value, FILE *stream);
   size_t (*strlen) (struct json_value *value);
   void (*free) (struct json_value *value);
-  struct json_value *next;
 } json_value_t;
 
 typedef struct json_key {
@@ -49,8 +48,13 @@ typedef struct json_object {
   struct json_key *head;
 } json_object_t;
 
+typedef struct json_array_value {
+  struct json_value *data;
+  struct json_array_value *next;
+} json_array_value_t;
+
 typedef struct json_array {
-  json_value_t *head;
+  json_array_value_t *head;
 } json_array_t;
 
 typedef char* json_string_t;

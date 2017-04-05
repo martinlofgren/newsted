@@ -22,7 +22,8 @@
 // Static function declarations
 
 static json_value_t *new_value (json_type_t new_type_enum,
-				void (*new_tostring) (struct json_value *value, FILE *stream),
+				void (*new_tostring) (struct json_value *value,
+						      FILE *stream),
 				size_t (*new_strlen) (struct json_value *value),
 				void (*new_free) (struct json_value *value),
 				size_t new_data_size);
@@ -33,12 +34,15 @@ static void stringify_integer(json_value_t *value, FILE* stream);
 static void stringify_float(json_value_t *value, FILE* stream);
 static void stringify_boolean(json_value_t *value, FILE* stream);
 static void stringify_object(json_value_t *value, FILE* stream);
-static size_t string_strlen(json_value_t *value)  __attribute__ ((pure));
-static size_t integer_strlen(json_value_t *value)  __attribute__ ((pure));
-static size_t float_strlen(json_value_t *value)  __attribute__ ((pure));
-static size_t obj_strlen(json_value_t *value) __attribute__ ((pure));
-static size_t boolean_strlen(json_value_t *value) __attribute__ ((pure));
+static void stringify_array(json_value_t *value, FILE* stream);
+static size_t strlen_object(json_value_t *value) __attribute__ ((pure));
+static size_t strlen_array(json_value_t *value) __attribute__ ((pure));
+static size_t strlen_string(json_value_t *value)  __attribute__ ((pure));
+static size_t strlen_integer(json_value_t *value)  __attribute__ ((pure));
+static size_t strlen_float(json_value_t *value)  __attribute__ ((pure));
+static size_t strlen_boolean(json_value_t *value) __attribute__ ((pure));
 static void free_object(json_value_t *value);
+static void free_array(json_value_t *value);
 static void free_key(json_key_t *key);
 static void free_simple_value(json_value_t *value);
 
@@ -49,18 +53,6 @@ int hash(char *s) {
 
 // ---------------------------------------------------------------------------
 // New objects functions
-
-json_object_t *json_newsted() {
-  json_object_t *obj;
-
-  obj = malloc(sizeof(json_object_t));
-  if (obj == NULL)
-    return NULL;
-
-  obj->head = NULL;
-
-  return obj;
-}
 
 json_key_t *json_new_key(char* key) {
   json_key_t *json_key;
@@ -80,7 +72,8 @@ json_key_t *json_new_key(char* key) {
 }
 
 static json_value_t *new_value (json_type_t new_type_enum,
-				void (*new_tostring) (struct json_value *value, FILE *stream),
+				void (*new_tostring) (struct json_value *value,
+						      FILE *stream),
 				size_t (*new_strlen) (struct json_value *value),
 				void (*new_free) (struct json_value *value),
 				size_t new_data_size) {
@@ -107,10 +100,26 @@ static json_value_t *new_value (json_type_t new_type_enum,
 json_value_t *json_new_object() {
   json_value_t *new;
 
-  if ((new = new_value(object, stringify_object, obj_strlen, free_object, 0))) {
-    new->data = json_newsted();
+  if ((new = new_value(object, stringify_object, strlen_object, free_object, 0))) {
+    new->data = malloc(sizeof(json_object_t));
     if (new->data == NULL)
       return NULL;
+
+    ((json_object_t *)new->data)->head = NULL;
+  }
+
+  return new;
+}
+
+json_value_t *json_new_array() {
+  json_value_t *new;
+
+  if ((new = new_value(array, stringify_array, strlen_array, free_array, 0))) {
+    new->data = malloc(sizeof(json_array_t));
+    if (new->data == NULL)
+      return NULL;
+
+    ((json_array_t *)new->data)->head = NULL;
   }
 
   return new;
@@ -121,7 +130,8 @@ json_value_t *json_new_string(char *value) {
   size_t len;
 
   len = strlen(value);
-  if ((new = new_value(string, stringify_string, string_strlen, free_simple_value, (len + 1) * sizeof(json_float_t))))
+  if ((new = new_value(string, stringify_string, strlen_string,
+		       free_simple_value, (len + 1) * sizeof(json_float_t))))
     memcpy(new->data, value, len + 1);
 
   return new;
@@ -130,7 +140,8 @@ json_value_t *json_new_string(char *value) {
 json_value_t *json_new_integer(json_integer_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_integer, stringify_integer, integer_strlen, free_simple_value, sizeof(json_integer_t))))
+  if ((new = new_value(num_integer, stringify_integer, strlen_integer,
+		       free_simple_value, sizeof(json_integer_t))))
     *(json_integer_t*) new->data = value;
   
   return new;
@@ -139,7 +150,8 @@ json_value_t *json_new_integer(json_integer_t value) {
 json_value_t *json_new_float(json_float_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_float, stringify_float, float_strlen, free_simple_value, sizeof(json_float_t))))
+  if ((new = new_value(num_float, stringify_float, strlen_float,
+		       free_simple_value, sizeof(json_float_t))))
     *(json_float_t*) new->data = value;
 
   return new;
@@ -148,20 +160,22 @@ json_value_t *json_new_float(json_float_t value) {
 json_value_t *json_new_boolean(json_boolean_t value) {
   json_value_t *new;
 
-  if ((new = new_value(boolean, stringify_boolean, boolean_strlen, free_simple_value, sizeof(json_boolean_t))))
+  if ((new = new_value(boolean, stringify_boolean, strlen_boolean,
+		       free_simple_value, sizeof(json_boolean_t))))
     *(json_boolean_t*) new->data = value;
 
   return new;
 }
 
 // ---------------------------------------------------------------------------
-// Functions that add values or name/value pairs to compound values
+// Functions that add values or name/value pairs to container values
 
-json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value) {
+json_status_t json_add_object(json_value_t *obj, char *key,
+			      json_value_t *value) {
   json_key_t *new_key, *key_ptr;
-  json_object_t *obj_ptr;
+  json_object_t *object_ptr;
 
-  obj_ptr = obj->data;
+  object_ptr = obj->data;
 
   // Create new key and associate with value
   if ((new_key = json_new_key(key)) == NULL)
@@ -169,12 +183,12 @@ json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value)
   new_key->value = value;
   
   // Empty object -> create first key/value pair
-  if (obj_ptr->head == NULL)
-    obj_ptr->head = new_key;
+  if (object_ptr->head == NULL)
+    object_ptr->head = new_key;
 
   // Object does contain some entries
   else {
-    key_ptr = obj_ptr->head;
+    key_ptr = object_ptr->head;
     
     // Iterate over object until there are no more entries OR the hash of the
     // key is larger than the prior one
@@ -196,10 +210,41 @@ json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value)
   return SUCCESS;
 }
 
+json_status_t json_add_array(json_value_t *array, json_value_t *value) {
+  json_array_t *array_ptr;
+  json_array_value_t *new_array_value, *array_value_ptr;
+
+  array_ptr = array->data;
+
+  // Create new array value and associate with actual value
+  if ((new_array_value = malloc(sizeof(json_array_value_t))) == NULL)
+    return ERR_MEM_ALLOC;
+  new_array_value->data = value;
+  new_array_value->next = NULL;
+
+  // Empty array -> create first value
+  if (array_ptr->head == NULL)
+    array_ptr->head = new_array_value;
+
+  // Object does contain some entries. Iterate over array until there are no
+  // more entries and append to linked list
+  else {
+    array_value_ptr = array_ptr->head;
+
+    while (array_value_ptr->next)
+      array_value_ptr = array_value_ptr->next;
+
+    array_value_ptr->next = new_array_value;
+  }
+  
+  return SUCCESS;
+}
+
+
 // ---------------------------------------------------------------------------
 // String length calculation functions
 
-static size_t obj_strlen(json_value_t *value) {
+static size_t strlen_object(json_value_t *value) {
   json_object_t *obj;
   json_key_t *key_ptr;
   json_value_t *value_ptr;
@@ -213,19 +258,13 @@ static size_t obj_strlen(json_value_t *value) {
     value_ptr = key_ptr->value;
 
     switch (value_ptr->type) {
-    case object:
-      ret += obj_strlen(value_ptr);
-      break;
-    case array:
-      break;
-    case string:      // Fall-through
-    case num_integer: //   |
-    case num_float:   //   |
-    case boolean:     //   v
-      ret += value_ptr->strlen(value);
-      break;
-    case nil:
-      break;
+      case object:      ret += strlen_object(value_ptr); break;
+      case array:       /* ACTUALLY DO SOMETHING */      break;
+      case string:        // Fall-through
+      case num_integer:   //      |
+      case num_float:     //      V
+      case boolean:     ret += value_ptr->strlen(value); break;
+      case nil:                                          break;
     }
 
     if (key_ptr->next)
@@ -235,11 +274,15 @@ static size_t obj_strlen(json_value_t *value) {
   return ret + OBJECT_EXTRA_LENGTH;
 }
 
-static size_t string_strlen(json_value_t *value) {
+static size_t strlen_array(json_value_t *value) {
+  return 0;
+}
+
+static size_t strlen_string(json_value_t *value) {
   return strlen((json_string_t) value->data) + STRING_EXTRA_LENGTH;
 }
 
-static size_t integer_strlen(json_value_t *value) {
+static size_t strlen_integer(json_value_t *value) {
   json_integer_t val;
   size_t n;
 
@@ -255,13 +298,13 @@ static size_t integer_strlen(json_value_t *value) {
   return n + NUMBER_EXTRA_LENGTH;
 }
 
-static size_t float_strlen(json_value_t *value) {
+static size_t strlen_float(json_value_t *value) {
   char tmp[22];
 
   return sprintf(tmp, "%.17g", *(json_float_t *) value->data) + NUMBER_EXTRA_LENGTH;
 }
 
-static size_t boolean_strlen(json_value_t *value) {
+static size_t strlen_boolean(json_value_t *value) {
   return ((value->data != FALSE) ? 4 : 5) + BOOLEAN_EXTRA_LENGTH;
 }
 
@@ -299,7 +342,9 @@ static void stringify_object(json_value_t *value, FILE* stream) {
   json_value_t *value_ptr;
 
   fprintf(stream, "{");
-  for (key_ptr = ((json_object_t *) value->data)->head; key_ptr; key_ptr = key_ptr->next) {
+  for (key_ptr = ((json_object_t *) value->data)->head;
+       key_ptr;
+       key_ptr = key_ptr->next) {
     stringify_key(key_ptr, stream);
     value_ptr = key_ptr->value;
     value_ptr->tostring(value_ptr, stream);
@@ -311,13 +356,17 @@ static void stringify_object(json_value_t *value, FILE* stream) {
 }
 
 static void stringify_array(json_value_t *value, FILE* stream) {
+  json_array_value_t *array_value_ptr;
   json_value_t *value_ptr;
 
   fprintf(stream, "[");
-  for (value_ptr = ((json_array_t *) value)->head; value_ptr; value_ptr = value_ptr->next) {
+  for (array_value_ptr = ((json_array_t *) value->data)->head;
+       array_value_ptr;
+       array_value_ptr = array_value_ptr->next) {
+    value_ptr = array_value_ptr->data;
     value_ptr->tostring(value_ptr, stream);
     
-    if (value_ptr->next)
+    if (array_value_ptr->next)
       fprintf(stream, ",");
   }
   fprintf(stream, "]");
@@ -329,7 +378,7 @@ static void stringify_array(json_value_t *value, FILE* stream) {
 static void free_object(json_value_t *value) {
   json_key_t *cur, *next;
 
-  next = ((json_object_t*)value->data)->head;
+  next = ((json_object_t *) value->data)->head;
   while ((cur = next)) {
     next = cur->next;
     free_key(cur);
@@ -337,11 +386,20 @@ static void free_object(json_value_t *value) {
   free_simple_value(value);
 }
 
-static void free_key(json_key_t *key) {
-  json_value_t *value;
+static void free_array(json_value_t *value) {
+  json_array_value_t *cur, *next;
 
-  value = key->value;
-  value->free(value);
+  next = ((json_array_t *) value->data)->head;
+  while((cur = next)) {
+    next = cur->next;
+    cur->data->free(cur->data);
+    free(cur);
+  }
+  free_simple_value(value);
+}
+
+static void free_key(json_key_t *key) {
+  key->value->free(key->value);
   free(key->data);
   free(key);
 }
