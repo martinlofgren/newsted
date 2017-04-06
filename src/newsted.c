@@ -1,5 +1,5 @@
 /*
- * newsted - a json library for C.
+ * newsted - a JSON library for C.
  *
  * Latest source is available at https://github.com/martinlofgren/newsted
  *
@@ -240,7 +240,12 @@ json_status_t json_add_array(json_value_t *array, json_value_t *value) {
 #define STRING_EXTRA_LENGTH  2 // "..."
 #define NUMBER_EXTRA_LENGTH  0 // 
 #define OBJECT_EXTRA_LENGTH  2 // {...}
-#define BOOLEAN_EXTRA_LENGTH 0 // 
+#define ARRAY_EXTRA_LENGTH   2 // [...]
+#define BOOLEAN_EXTRA_LENGTH 0 //
+
+size_t json_strlen(json_value_t *value) {
+  return value->strlen(value);
+}
 
 static size_t strlen_object(json_value_t *value) {
   json_object_t *obj;
@@ -248,22 +253,13 @@ static size_t strlen_object(json_value_t *value) {
   json_value_t *value_ptr;
   size_t ret;
 
-  obj = (json_object_t*) value->data;
+  obj = (json_object_t *) value->data;
   ret = 0;
 
   for (key_ptr = obj->head; key_ptr; key_ptr = key_ptr->next) {
     ret += key_ptr->len + KEY_EXTRA_LENGTH;
     value_ptr = key_ptr->value;
-
-    switch (value_ptr->type) {
-      case object:      ret += strlen_object(value_ptr); break;
-      case array:       /* ACTUALLY DO SOMETHING */      break;
-      case string:        // Fall-through
-      case num_integer:   //      |
-      case num_float:     //      V
-      case boolean:     ret += value_ptr->strlen(value); break;
-      case nil:                                          break;
-    }
+    ret += value_ptr->strlen(value_ptr);
 
     if (key_ptr->next)
       ret++;
@@ -273,7 +269,25 @@ static size_t strlen_object(json_value_t *value) {
 }
 
 static size_t strlen_array(json_value_t *value) {
-  return 0;
+  json_array_t *array;
+  json_array_value_t *array_value_ptr;
+  json_value_t *value_ptr;
+  size_t ret;
+
+  array = (json_array_t *) value->data;
+  ret = 0;
+
+  for (array_value_ptr = array->head;
+       array_value_ptr;
+       array_value_ptr = array_value_ptr->next) {
+    value_ptr = array_value_ptr->data;
+    ret += value_ptr->strlen(value_ptr);
+
+    if (array_value_ptr->next)
+      ret++;
+  }
+
+  return ret + ARRAY_EXTRA_LENGTH;
 }
 
 static size_t strlen_string(json_value_t *value) {

@@ -1,5 +1,5 @@
 /*
- * newstedt - a json library for C.
+ * newstedt - a JSON library for C.
  *
  * Latest source is available at https://github.com/martinlofgren/newstedt
  *

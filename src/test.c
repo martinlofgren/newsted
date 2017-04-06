@@ -7,7 +7,7 @@ int main () {
   json_value_t *obj;
   json_value_t *array;
 
-  // Create json object
+  // Create JSON object
   printf("Create json object... ");
   obj = json_new_object();
   if (obj == NULL) {
@@ -16,7 +16,7 @@ int main () {
   }
   printf("Done!\n");
 
-  // Populate json object
+  // Populate JSON object
   printf("Populate json object... ");
   array = json_new_array();
   json_add_array(array, json_new_string("...And justice for all"));
@@ -30,8 +30,11 @@ int main () {
   json_add_object(obj, "Great?", json_new_boolean(TRUE));
   printf("Done!\n");
 
-  // Stringify populated json object
-  printf("Stringify json object...\n");
+  // Get string length
+  printf("Get string length... %d\n", (int) json_strlen(obj));
+
+  // Generate populated JSON object string
+  printf("Generate string from json object...\n");
   printf("Result: ");
   json_generate(obj, stdout);
 
