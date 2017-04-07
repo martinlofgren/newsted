@@ -298,7 +298,7 @@ static size_t strlen_integer(json_value_t *value) {
   json_integer_t val;
   size_t n;
 
-  val = (json_integer_t) value->data;
+  val = *((json_integer_t*) value->data);
   
   n = 0;
   if (val < 0)
