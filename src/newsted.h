@@ -1,7 +1,7 @@
 /*
- * newstedt - a JSON library for C.
+ * newsted - a JSON library for C.
  *
- * Latest source is available at https://github.com/martinlofgren/newstedt
+ * Latest source is available at https://github.com/martinlofgren/newsted
  *
  * Author: Martin Löfgren <martin.c.lofgren@gmail.com>
  */

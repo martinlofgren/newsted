@@ -8,16 +8,16 @@ int main () {
   json_value_t *array;
 
   // Create JSON object
-  printf("Create json object... ");
+  fprintf(stderr, "Create json object... ");
   obj = json_new_object();
   if (obj == NULL) {
     perror("error on creating json object");
     exit(EXIT_FAILURE);
   }
-  printf("Done!\n");
+  fprintf(stderr, "Done!\n");
 
   // Populate JSON object
-  printf("Populate json object... ");
+  fprintf(stderr, "Populate json object... ");
   array = json_new_array();
   json_add_array(array, json_new_string("...And justice for all"));
   json_add_array(array, json_new_string("Metallica"));
@@ -28,20 +28,20 @@ int main () {
   json_add_object(obj, "Review", json_new_float(1.22));
   json_add_object(obj, "Great?", json_new_boolean(TRUE));
   json_add_object(obj, "Albums", array);
-  printf("Done!\n");
+  fprintf(stderr, "Done!\n");
 
   // Get string length
-  printf("Get string length... %d\n", (int) json_strlen(obj));
+  fprintf(stderr, "Get string length... %d\n", (int) json_strlen(obj));
 
   // Generate populated JSON object string
-  printf("Generate string from json object...\n");
-  printf("Result: ");
+  fprintf(stderr, "Generate string from json object...\n");
+  fprintf(stderr, "Result: ");
   json_generate(obj, stdout);
 
   // Clean up
-  printf("\nClean up... ");
+  fprintf(stderr, "\nClean up... ");
   json_free(obj);
-  printf("Done!\n");
+  fprintf(stderr, "Done!\n");
 
   return 0;
 }
