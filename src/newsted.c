@@ -11,17 +11,10 @@
 // Static function declarations
 
 static json_value_t *new_value (json_type_t new_type_enum,
-				void (*new_tostring) (struct json_value *value,
-						      FILE *stream),
-				size_t (*new_strlen) (struct json_value *value),
-				void (*new_free) (struct json_value *value),
 				size_t new_data_size);
 static json_key_t *new_key(char *key);
 static void generate_key(json_key_t *key, FILE* stream);
-static void free_object(json_value_t *value);
-static void free_array(json_value_t *value);
 static void free_key(json_key_t *key);
-static void free_simple_value(json_value_t *value);
 
 // Dummy hash function
 int hash(char *s) {
@@ -50,10 +43,6 @@ json_key_t *new_key(char* key) {
 }
 
 static json_value_t *new_value (json_type_t new_type_enum,
-				void (*new_tostring) (struct json_value *value,
-						      FILE *stream),
-				size_t (*new_strlen) (struct json_value *value),
-				void (*new_free) (struct json_value *value),
 				size_t new_data_size) {
   json_value_t *new;
 
@@ -62,9 +51,6 @@ static json_value_t *new_value (json_type_t new_type_enum,
     return NULL;
 
   new->type = new_type_enum;
-  new->tostring = new_tostring;
-  new->strlen = new_strlen;
-  new->free = new_free;
 
   if (new_data_size) {
     new->data = malloc(new_data_size);
@@ -78,7 +64,7 @@ static json_value_t *new_value (json_type_t new_type_enum,
 json_value_t *json_new_object() {
   json_value_t *new;
 
-  if ((new = new_value(object, NULL, NULL, free_object, 0))) {
+  if ((new = new_value(object, 0))) {
     new->data = malloc(sizeof(json_object_t));
     if (new->data == NULL)
       return NULL;
@@ -92,7 +78,7 @@ json_value_t *json_new_object() {
 json_value_t *json_new_array() {
   json_value_t *new;
 
-  if ((new = new_value(array, NULL, NULL, free_array, 0))) {
+  if ((new = new_value(array, 0))) {
     new->data = malloc(sizeof(json_array_t));
     if (new->data == NULL)
       return NULL;
@@ -108,8 +94,7 @@ json_value_t *json_new_string(char *value) {
   size_t len;
 
   len = strlen(value);
-  if ((new = new_value(string, NULL, NULL,
-		       free_simple_value, (len + 1) * sizeof(json_float_t))))
+  if ((new = new_value(string, (len + 1) * sizeof(json_float_t))))
     memcpy(new->data, value, len + 1);
 
   return new;
@@ -118,8 +103,7 @@ json_value_t *json_new_string(char *value) {
 json_value_t *json_new_integer(json_integer_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_integer, NULL, NULL,
-		       free_simple_value, sizeof(json_integer_t))))
+  if ((new = new_value(num_integer, sizeof(json_integer_t))))
     *(json_integer_t*) new->data = value;
   
   return new;
@@ -128,8 +112,7 @@ json_value_t *json_new_integer(json_integer_t value) {
 json_value_t *json_new_float(json_float_t value) {
   json_value_t *new;
 
-  if ((new = new_value(num_float, NULL, NULL,
-		       free_simple_value, sizeof(json_float_t))))
+  if ((new = new_value(num_float, sizeof(json_float_t))))
     *(json_float_t*) new->data = value;
 
   return new;
@@ -138,8 +121,7 @@ json_value_t *json_new_float(json_float_t value) {
 json_value_t *json_new_boolean(json_boolean_t value) {
   json_value_t *new;
 
-  if ((new = new_value(boolean, NULL, NULL,
-		       free_simple_value, sizeof(json_boolean_t))))
+  if ((new = new_value(boolean, sizeof(json_boolean_t))))
     *(json_boolean_t*) new->data = value;
 
   return new;
@@ -369,41 +351,44 @@ static void generate_key(json_key_t *key, FILE* stream) {
 // Freeing functions
 // ---------------------------------------------------------------------------
 
-static void free_object(json_value_t *value) {
-  json_key_t *cur, *next;
-
-  next = ((json_object_t *) value->data)->head;
-  while ((cur = next)) {
-    next = cur->next;
-    free_key(cur);
-  }
-  free_simple_value(value);
-}
-
-static void free_array(json_value_t *value) {
-  json_array_value_t *cur, *next;
-
-  next = ((json_array_t *) value->data)->head;
-  while((cur = next)) {
-    next = cur->next;
-    cur->data->free(cur->data);
-    free(cur);
-  }
-  free_simple_value(value);
-}
-
 static void free_key(json_key_t *key) {
-  key->value->free(key->value);
+  json_free(key->value);
   free(key->data);
   free(key);
 }
 
-static void free_simple_value(json_value_t *value) {
-  free(value->data);
-  free(value);
-}
-
 void json_free(json_value_t *value) {
-  value->free(value);
+  json_key_t *cur_key, *next_key;
+  json_array_value_t *cur_arr, *next_arr;
+
+  switch (value->type) {
+  case object:
+    next_key = ((json_object_t *) value->data)->head;
+    while ((cur_key = next_key)) {
+      next_key = cur_key->next;
+      free_key(cur_key);
+    }
+    free(value);
+    break;
+
+  case array:
+    next_arr = ((json_array_t *) value->data)->head;
+    while ((cur_arr = next_arr)) {
+      next_arr = cur_arr->next;
+      json_free(cur_arr->data);
+      free(cur_arr);
+    }
+    free(value);
+    break;
+
+  case string:          // Fall through
+  case num_integer:     //      |
+  case num_float:       //      |
+  case boolean:         //      v
+    free(value->data);
+  case nil:             //      v
+    free(value);
+    break;
+  }
 }
 

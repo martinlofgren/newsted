@@ -36,7 +36,7 @@ int main () {
   // Generate populated JSON object string
   fprintf(stderr, "Generate string from json object...\n");
   fprintf(stderr, "Result: ");
-  json_generate(obj, stdout);
+  json_generate(obj, stderr);
 
   // Clean up
   fprintf(stderr, "\nClean up... ");
