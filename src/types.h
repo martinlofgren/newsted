@@ -27,6 +27,8 @@ typedef enum json_type {
 #define FALSE 0
 #define TRUE  1
 
+#define JSON_INDENT 0x10
+
 typedef struct json_value {
   enum json_type type;
   void *data;

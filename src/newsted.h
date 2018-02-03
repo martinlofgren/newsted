@@ -101,7 +101,7 @@ size_t json_strlen(json_value_t *value);
  * Return value: the length of generated JSON string, not including terminating 
  *               null character.
  */
-json_status_t json_generate (json_value_t *value, FILE *stream);
+json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *stream);
 /* 
  * Generate JSON string.
  *

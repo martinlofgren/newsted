@@ -13,6 +13,7 @@
 static json_value_t *new_value (json_type_t new_type_enum,
 				size_t new_data_size);
 static json_key_t *new_key(char *key);
+static void indent (int indent, FILE *stream);
 static void generate_key(json_key_t *key, FILE* stream);
 static void free_key(json_key_t *key);
 
@@ -285,38 +286,79 @@ size_t json_strlen(json_value_t *value) {
 // JSON generator functions
 // ---------------------------------------------------------------------------
 
-json_status_t json_generate (json_value_t *value, FILE *stream) {
+void indent (int indent, FILE *stream) {
+  int i;
+  
+  fprintf(stream, "\n");
+  for (i = indent; i > 0; i--)
+    fprintf(stream, " ");
+}
+
+json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *stream) {
   json_key_t *key_ptr;
   json_array_value_t *array_value_ptr;
+  char indent_spaces = opt & 0xF;
+  char opt_indent = opt & JSON_INDENT;
 
+  static int ind_level = 0;
+  static int obj_val = FALSE;
+  
+  if (opt_indent && !obj_val)
+    indent(ind_level * indent_spaces, stream);
+  
   switch (value->type) {
   case object:
-
     fprintf(stream, "{");
+    ind_level++;
+
     for (key_ptr = ((json_object_t *) value->data)->head;
 	 key_ptr;
 	 key_ptr = key_ptr->next) {
+      if (opt_indent) 
+	indent(ind_level * indent_spaces, stream);
+
       generate_key(key_ptr, stream);
-      json_generate(key_ptr->value, stream);
+
+      if (opt_indent)
+	fprintf(stream, " ");
+      
+      obj_val = TRUE;
+      json_generate(key_ptr->value, opt, stream);
+      obj_val = FALSE;
     
-      if (key_ptr->next)
+      if (key_ptr->next) {
 	fprintf(stream, ",");
+      }
     }
+
+    ind_level--;
+    
+    if (opt_indent)
+      indent(ind_level * indent_spaces, stream);
+    
     fprintf(stream, "}");
     break;
 
   case array:
-
+    obj_val = FALSE;
     fprintf(stream, "[");
+    ind_level++;
+
     for (array_value_ptr = ((json_array_t *) value->data)->head;
 	 array_value_ptr;
 	 array_value_ptr = array_value_ptr->next) {
-      json_generate(array_value_ptr->data, stream);
+      json_generate(array_value_ptr->data, opt, stream);
     
       if (array_value_ptr->next)
 	fprintf(stream, ",");
     }
+
+    ind_level--;
+    if (opt_indent)
+      indent(ind_level * indent_spaces, stream);
+
     fprintf(stream, "]");
+    obj_val = TRUE;
     break;
 
   case string:
