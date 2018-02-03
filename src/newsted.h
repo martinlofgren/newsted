@@ -68,7 +68,7 @@ json_value_t *json_new_boolean(json_boolean_t value);
  * value: boolean value. True corresponds to 1 and false to 0 (integer values),
  *        these are defined as TRUE and FALSE in the types.h include file.
  *
- * Return value: JSON value of type float
+ * Return value: JSON value of type boolean
  */
 
 json_status_t json_add_object(json_value_t *obj, char *key, json_value_t *value);
@@ -101,6 +101,17 @@ size_t json_strlen(json_value_t *value);
  * Return value: the length of generated JSON string, not including terminating 
  *               null character.
  */
+
+json_value_t *json_parse (char *string);
+/*
+ * Parse a string and create a new json value if the provided string is valid
+ * json.
+ *
+ * string: the string to be parsed
+ *
+ * Return value: json value if succesfull, NULL otherwise.
+ */
+
 json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *stream);
 /* 
  * Generate JSON string.

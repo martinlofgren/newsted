@@ -43,5 +43,32 @@ int main () {
   json_free(obj);
   fprintf(stderr, "Done!\n");
 
+
+  // Do some parsing
+  char* str = "\"Hej. Du är en fisk\"";
+  json_value_t* j_val;
+
+  fprintf(stderr, "\n*** PARSING ***\n\nParse a string... ");
+
+  if ((j_val = json_parse(str)))
+    fprintf(stderr, "Done!\n");
+  else {
+    fprintf(stderr, "error on parsing string: %s\n", str);
+    exit(EXIT_FAILURE);
+  }
+  
+  // Get string length
+  fprintf(stderr, "Get string length... %d\n", (int) json_strlen(j_val));
+
+  // Generate populated JSON object string
+  fprintf(stderr, "Generate string from json object...\n");
+  fprintf(stderr, "Result: ");
+  json_generate(j_val, JSON_INDENT | 2, stderr);
+
+  // Clean up
+  fprintf(stderr, "\nClean up... ");
+  json_free(j_val);
+  fprintf(stderr, "Done!\n");
+
   return 0;
 }
