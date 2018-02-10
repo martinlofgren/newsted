@@ -340,6 +340,7 @@ json_value_t *parse () {
       json_add_array(ret, tmp);
 	
     }
+    current++;
     in_container = FALSE;
     break;
       
@@ -430,7 +431,6 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
     break;
 
   case array:
-    obj_val = FALSE;
     fprintf(stream, "[");
     ind_level++;
 
@@ -448,7 +448,6 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
       indent(ind_level * indent_spaces, stream);
 
     fprintf(stream, "]");
-    obj_val = TRUE;
     break;
 
   case string:

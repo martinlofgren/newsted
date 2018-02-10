@@ -45,7 +45,7 @@ int main () {
 
 
   // Do some parsing
-  char* str = "[true, false, \"Jag är en fisk\"]";
+  char* str = "[[true, false], \"Jag är en fisk\",[\"Gris\",\"Ko\",\"Häst\"]]";
   json_value_t* j_val;
 
   fprintf(stderr, "\n*** PARSING ***\n\nParse a string... ");
