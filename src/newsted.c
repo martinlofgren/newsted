@@ -12,15 +12,16 @@
 
 static json_value_t *new_value (json_type_t new_type_enum,
 				size_t new_data_size);
-static json_key_t *new_key(char *key);
+static json_key_t *new_key(const char *key);
 static json_value_t *new_string(char *value, size_t len);
-static int lookahead (char* string, char* substring, int n);
+static int lookahead (char* string, int n);
 static void indent (int indent, FILE *stream);
 static void generate_key(json_key_t *key, FILE* stream);
 static void free_key(json_key_t *key);
+static json_value_t *parse();
 
 // Dummy hash function
-int hash(char *s) {
+int hash(const char *s) {
   return (int) *s;
 }
 
@@ -28,7 +29,7 @@ int hash(char *s) {
 // New objects functions
 // ---------------------------------------------------------------------------
 
-json_key_t *new_key(char* key) {
+json_key_t *new_key(const char* key) {
   json_key_t *json_key;
 
   json_key = malloc(sizeof(json_key_t));
@@ -99,7 +100,7 @@ json_value_t *json_new_string(char *value) {
 json_value_t *new_string(char *value, size_t len) {
   json_value_t *new;
 
-  if ((new = new_value(string, (len + 1) * sizeof(json_float_t))))
+  if ((new = new_value(string, (len + 1) * sizeof(json_string_t))))
     memcpy(new->data, value, len);
   *((json_string_t) new->data + len) = '\0';
 
@@ -291,70 +292,93 @@ size_t json_strlen(json_value_t *value) {
 // JSON parsing functions
 // ---------------------------------------------------------------------------
 
-int in_container;
+static int in_container;
+static char* current;
 
 json_value_t *json_parse (char *string) {
-  char *start, *current, c;
-  int n;
-
-  current = string;
   in_container = FALSE;
+  current = string;
 
-  while ((c = *current)) {
-    switch (c) {
-    case '{':
-      while (TRUE /* some condition */) {
-	in_container = TRUE;
-	/* json_parse(...) */
-      }
-      in_container = FALSE;
-      break;
-      
-    case '[':
-      /* Same logic as above */
-      break;
-      
-    case '"':
-      start = ++current;
-      n = 0;
-      while (*(current++) != '"')
-	n++;
-      if (lookahead(current, NULL, 0))
-	  return new_string(start, n);
-      break;
-	  
-    case 't':
-      if (lookahead(current, "true", 4))
-	return json_new_boolean(TRUE);
-      break;
-
-    case 'f':
-      if (lookahead(current, "false", 5))
-	return json_new_boolean(FALSE);
-
-    default:
-      if (c >= '0' && c <= '9') {
-	/* Parse a number */
-      }
-    }
-    current++;
-  }
-  return NULL;
+  return parse();
 }
 
-int lookahead (char* string, char* substring, int n) {
+json_value_t *parse () {
+  char *start, c;
+  int n;
+  json_value_t *ret, *tmp;
+
+  for (c = *current;
+       (in_container == TRUE && c == ',')
+	 || c == ' ' || c == '\t' || c == '\v'
+	 || c == '\f' || c == '\r' || c == '\n';
+       c = *(++current))
+    ;
+    
+  switch (c = *current++) {
+  case '{':/*
+	     if (!(ret = json_new_object()))
+	     return NULL;
+      
+	     while (*(++current) != '}') {
+	     in_container = TRUE;
+	     //	json_add_object(parse());
+	     }
+	     in_container = FALSE;
+	     break;*/
+      
+  case '[':
+    if (!(ret = json_new_array()))
+      return NULL;
+      
+    while (*(current ) != ']') {
+      in_container = TRUE;
+
+      if (!(tmp = parse())) {
+	json_free(ret);
+	return NULL;
+      }
+      json_add_array(ret, tmp);
+	
+    }
+    in_container = FALSE;
+    break;
+      
+  case '"':
+    for (start = current, n = 0; *(current++) != '"'; n++)
+      ;
+    ret = (lookahead(NULL, 0)) ? new_string(start, n) : NULL;
+    break;
+	  
+  case 't':
+    ret = (lookahead("rue", 3)) ? json_new_boolean(TRUE) : NULL;
+    break;
+
+  case 'f':
+    ret = (lookahead("alse", 4)) ? json_new_boolean(FALSE) : NULL;
+    break;
+
+  default:
+    if (c >= '0' && c <= '9') {
+      /* Parse a number */
+    }
+    else ret = NULL;
+  }
+
+  return ret;
+}
+
+int lookahead (char* string, int n) {
   while (n--) {
-    if (*string++ != *substring++)
+    if (*current++ != *string++)
       return FALSE;
   }
   
-  if (*string == '\0' || (*string == ',' && in_container == TRUE))
-    return TRUE;
-  
-  return FALSE;
-}
+  if ((*current == '\0' && in_container == TRUE) ||
+      ((*current == ',' || *current == ']' || *current == '}') && in_container == FALSE))
+    return FALSE;
 
-// {K1:V1, K2:{Q1:W1, Q2:W2}, K3:[A1,A2,A3]}
+  return TRUE;
+}
 
 // ---------------------------------------------------------------------------
 // JSON generator functions

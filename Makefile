@@ -1,7 +1,7 @@
 
 SRCS   	= $(wildcard src/*.c)
 
-CFLAGS 	= -Wall
+CFLAGS 	= -Wall -g
 
 test : $(SRCS)
 	cc $(SRCS) -o test $(CFLAGS) -lm
