@@ -112,7 +112,7 @@ json_value_t *json_parse (char *string);
  * Return value: json value if succesfull, NULL otherwise.
  */
 
-json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *stream);
+json_status_t json_generate (const json_value_t *value, const unsigned char opt, FILE *stream);
 /* 
  * Generate JSON string.
  *

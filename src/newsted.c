@@ -10,13 +10,12 @@
 
 // Static function declarations
 
-static json_value_t *new_value (json_type_t new_type_enum,
-				size_t new_data_size);
+static json_value_t *new_value (const json_type_t new_type_enum, const size_t new_data_size);
 static json_key_t *new_key(const char *key);
-static json_value_t *new_string(char *value, size_t len);
-static int lookahead (char* string, int n);
+static json_value_t *new_string(const char *value, const size_t len);
+static int lookahead (const char* string, int n);
 static void indent (int indent, FILE *stream);
-static void generate_key(json_key_t *key, FILE* stream);
+static void generate_key(const json_key_t *key, FILE* stream);
 static void free_key(json_key_t *key);
 static json_value_t *parse();
 
@@ -46,8 +45,7 @@ json_key_t *new_key(const char* key) {
   return json_key;
 }
 
-static json_value_t *new_value (json_type_t new_type_enum,
-				size_t new_data_size) {
+static json_value_t *new_value (const json_type_t new_type_enum, const size_t new_data_size) {
   json_value_t *new;
 
   new = malloc(sizeof(json_value_t));
@@ -97,7 +95,7 @@ json_value_t *json_new_string(char *value) {
   return new_string(value, strlen(value));
 }
 
-json_value_t *new_string(char *value, size_t len) {
+json_value_t *new_string(const char *value, const size_t len) {
   json_value_t *new;
 
   if ((new = new_value(string, (len + 1) * sizeof(json_string_t))))
@@ -368,7 +366,7 @@ json_value_t *parse () {
   return ret;
 }
 
-int lookahead (char* string, int n) {
+int lookahead (const char* string, int n) {
   while (n--) {
     if (*current++ != *string++)
       return FALSE;
@@ -385,11 +383,12 @@ int lookahead (char* string, int n) {
 // JSON generator functions
 // ---------------------------------------------------------------------------
 
-json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *stream) {
+json_status_t json_generate (const json_value_t *value, const unsigned char opt, FILE *stream) {
   json_key_t *key_ptr;
   json_array_value_t *array_value_ptr;
-  char indent_spaces = opt & 0xF;
-  char opt_indent = opt & JSON_INDENT;
+
+  const unsigned char indent_spaces = opt & 0xF;
+  const unsigned char opt_indent = opt & JSON_INDENT;
 
   static int ind_level = 0;
   static int obj_val = FALSE;
@@ -399,7 +398,7 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
   
   switch (value->type) {
   case object:
-    fprintf(stream, "{");
+    fputc('{', stream);
     ind_level++;
 
     for (key_ptr = ((json_object_t *) value->data)->head;
@@ -411,14 +410,14 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
       generate_key(key_ptr, stream);
 
       if (opt_indent)
-	fprintf(stream, " ");
+	fputc(' ', stream);
       
       obj_val = TRUE;
       json_generate(key_ptr->value, opt, stream);
       obj_val = FALSE;
     
       if (key_ptr->next) {
-	fprintf(stream, ",");
+	fputc(',', stream);
       }
     }
 
@@ -427,12 +426,13 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
     if (opt_indent)
       indent(ind_level * indent_spaces, stream);
     
-    fprintf(stream, "}");
+    fputc('}', stream);
     break;
 
   case array:
-    fprintf(stream, "[");
+    fputc('[', stream);
     ind_level++;
+    obj_val = FALSE;
 
     for (array_value_ptr = ((json_array_t *) value->data)->head;
 	 array_value_ptr;
@@ -440,14 +440,14 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
       json_generate(array_value_ptr->data, opt, stream);
     
       if (array_value_ptr->next)
-	fprintf(stream, ",");
+	fputc(',', stream);
     }
 
     ind_level--;
     if (opt_indent)
       indent(ind_level * indent_spaces, stream);
 
-    fprintf(stream, "]");
+    fputc(']', stream);
     break;
 
   case string:
@@ -474,14 +474,12 @@ json_status_t json_generate (json_value_t *value, unsigned char opt, FILE *strea
 }
 
 void indent (int indent, FILE *stream) {
-  int i;
-  
-  fprintf(stream, "\n");
-  for (i = indent; i > 0; i--)
-    fprintf(stream, " ");
+  fputc('\n', stream);
+  while (indent--)
+    fputc(' ', stream);
 }
 
-static void generate_key(json_key_t *key, FILE* stream) {
+static void generate_key(const json_key_t *key, FILE* stream) {
   fprintf(stream, "\"%s\":", key->data);
 }
 
